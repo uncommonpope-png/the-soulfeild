@@ -125,10 +125,52 @@
     grid.position.y = 0.02;
     grid.material = gridMat;
 
+    // ---- ROADS ----
+    const roadMat = new B.StandardMaterial('roadMat', scene);
+    roadMat.diffuseColor = new B.Color3(0.01, 0.01, 0.018);
+    roadMat.emissiveColor = new B.Color3(0.006, 0.004, 0.014);
+    roadMat.specularColor = new B.Color3(0.08, 0.05, 0.12);
+    for (let i = -3; i <= 3; i++) {
+        const a = i * 14;
+        const roadX = B.MeshBuilder.CreateBox('roadX' + i, { width: 180, height: 0.04, depth: 2.6 }, scene);
+        roadX.position = new B.Vector3(0, 0.04, a);
+        roadX.material = roadMat;
+        const roadZ = B.MeshBuilder.CreateBox('roadZ' + i, { width: 2.6, height: 0.04, depth: 180 }, scene);
+        roadZ.position = new B.Vector3(a, 0.045, 0);
+        roadZ.material = roadMat;
+    }
+
     // ---- FOG (subtle) ----
     scene.fogMode = B.Scene.FOGMODE_EXP2;
     scene.fogDensity = 0.003;
     scene.fogColor = new B.Color3(0.02, 0.01, 0.05);
+
+    // ---- COSMIC SKY ----
+    const skyDome = B.MeshBuilder.CreateSphere('skyDome', { diameter: 900, segments: 24 }, scene);
+    const skyMat = new B.StandardMaterial('skyMat', scene);
+    skyMat.disableLighting = true;
+    skyMat.backFaceCulling = false;
+    skyMat.diffuseColor = new B.Color3(0, 0, 0);
+    skyMat.emissiveColor = new B.Color3(0.012, 0.004, 0.045);
+    skyDome.material = skyMat;
+    skyDome.applyFog = false;
+
+    function makeNebula(name, x, y, z, width, height, color, alpha) {
+        const n = B.MeshBuilder.CreatePlane(name, { width, height }, scene);
+        n.position = new B.Vector3(x, y, z);
+        n.rotation.y = x > 0 ? -0.35 : 0.35;
+        const m = new B.StandardMaterial(name + 'Mat', scene);
+        m.disableLighting = true;
+        m.backFaceCulling = false;
+        m.diffuseColor = new B.Color3(0, 0, 0);
+        m.emissiveColor = color;
+        m.alpha = alpha;
+        n.material = m;
+        n.applyFog = false;
+    }
+    makeNebula('violetNebula', -80, 70, -135, 120, 65, new B.Color3(0.45, 0.12, 0.8), 0.18);
+    makeNebula('cyanNebula', 90, 85, -160, 130, 70, new B.Color3(0.08, 0.45, 0.8), 0.15);
+    makeNebula('roseNebula', 15, 110, -190, 110, 55, new B.Color3(0.75, 0.12, 0.45), 0.13);
 
     // ---- STARS ----
     const stars = new B.ParticleSystem('stars', 12000, scene);
@@ -148,8 +190,8 @@
     stars.start();
 
     // ---- SOLAR SYSTEM ----
-    const sun = B.MeshBuilder.CreateSphere('sun', { diameter: 8, segments: 24 }, scene);
-    sun.position = new B.Vector3(0, 90, -180);
+    const sun = B.MeshBuilder.CreateSphere('sun', { diameter: 18, segments: 24 }, scene);
+    sun.position = new B.Vector3(0, 70, -95);
     const sunMat = new B.StandardMaterial('sunMat', scene);
     sunMat.emissiveColor = new B.Color3(1, 0.8, 0.3);
     sunMat.diffuseColor = new B.Color3(0, 0, 0);
@@ -158,7 +200,7 @@
 
     const sunGlow = new B.PointLight('sunLight', sun.position.clone(), scene);
     sunGlow.intensity = 2;
-    sunGlow.range = 500;
+    sunGlow.range = 260;
     sunGlow.diffuse = new B.Color3(1, 0.8, 0.4);
 
     const planetColors = [
@@ -167,10 +209,10 @@
     ];
     const planets = [];
     planetColors.forEach((c, i) => {
-        const radius = 18 + i * 12;
+        const radius = 14 + i * 11;
         const pivot = new B.TransformNode('orbit' + i);
         pivot.position = sun.position.clone();
-        const p = B.MeshBuilder.CreateSphere('planet' + i, { diameter: 1.2 + i * 0.3, segments: 16 }, scene);
+        const p = B.MeshBuilder.CreateSphere('planet' + i, { diameter: 4 + i * 0.9, segments: 24 }, scene);
         p.position = new B.Vector3(radius, 0, 0);
         p.parent = pivot;
         const pm = new B.StandardMaterial('pm' + i, scene);
@@ -203,6 +245,20 @@
         m.emissiveColor = new B.Color3(c[0] * 0.3, c[1] * 0.3, c[2] * 0.3);
         m.specularColor = new B.Color3(0.2, 0.2, 0.3);
         box.material = m;
+
+        // Window glow strips on front and side faces.
+        const winMat = new B.StandardMaterial('winMat', scene);
+        winMat.diffuseColor = new B.Color3(0, 0, 0);
+        winMat.emissiveColor = new B.Color3(0.2 + Math.random() * 0.5, 0.5 + Math.random() * 0.4, 0.9);
+        for (let j = 0; j < 3; j++) {
+            const y = h * (0.25 + j * 0.22);
+            const wf = B.MeshBuilder.CreateBox('winF', { width: w * 0.55, height: 0.18, depth: 0.04 }, scene);
+            wf.position = new B.Vector3(x, y, z - d / 2 - 0.03);
+            wf.material = winMat;
+            const ws = B.MeshBuilder.CreateBox('winS', { width: 0.04, height: 0.18, depth: d * 0.55 }, scene);
+            ws.position = new B.Vector3(x + w / 2 + 0.03, y, z);
+            ws.material = winMat;
+        }
 
         // Neon edge
         const edges = B.MeshBuilder.CreateLines('edge', {
