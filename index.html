@@ -136,7 +136,7 @@
     drawNebula(1200, 700, 600, 400, '#2e6bb8');
     drawNebula(1700, 200, 400, 250, '#b82e8a');
     drawNebula(900, 500, 500, 350, '#2eb8b0');
-    drawNebua = null; // cleanup
+    // (nebula drawing done)
 
     // Stars — thousands of them
     for (let i = 0; i < 3000; i++) {
@@ -162,10 +162,8 @@
     }
 
     const skyTex = new B.DynamicTexture('skyTex', skyCanvas, scene, false);
-    skyTex.coordinatesMode = B.Texture.SKYBOX_MODE;
     skyMat.emissiveTexture = skyTex;
     skybox.material = skyMat;
-    skybox.infiniteDistance = true;
     skybox.applyFog = false;
 
     // ============================================================
