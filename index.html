@@ -193,12 +193,12 @@
 
         // ---- LIGHTS ----
         const ambient = new BABYLON.HemisphericLight('ambient', new BABYLON.Vector3(0, 1, 0), scene);
-        ambient.intensity = 0.15;
-        ambient.diffuse = new BABYLON.Color3(0.3, 0.15, 0.5);
+ambient.intensity = 0.4;
+        ambient.diffuse = new BABYLON.Color3(0.4, 0.3, 0.6);
 
         const sunLight = new BABYLON.DirectionalLight('sunLight', new BABYLON.Vector3(0.5, -1, 0.3), scene);
-        sunLight.intensity = 0.6;
-        sunLight.diffuse = new BABYLON.Color3(0.8, 0.6, 1);
+        sunLight.intensity = 1.2;
+        sunLight.diffuse = new BABYLON.Color3(0.7, 0.6, 1);
 
         // ---- ENVIRONMENT (Reflections) ----
         let envTexture = null;
@@ -214,13 +214,11 @@
         // ---- GROUND (reflective) ----
         const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 180, height: 180 }, scene);
         const groundMat = new BABYLON.PBRMaterial('groundMat', scene);
-        groundMat.albedoColor = new BABYLON.Color3(0.01, 0.01, 0.03);
-        groundMat.roughness = 0.4;
-        groundMat.metallic = 0.9;
+        groundMat.albedoColor = new BABYLON.Color3(0.02, 0.02, 0.05);
+        groundMat.roughness = 0.6;
+        groundMat.metallic = 0.1;
         groundMat.environmentTexture = envTexture;
-        groundMat.environmentIntensity = 0.6;
-        groundMat.reflectivityColor = new BABYLON.Color3(0.1, 0.1, 0.2);
-        groundMat.clearCoat = 0.3;
+        if (envTexture) groundMat.environmentIntensity = 0.6;
         ground.material = groundMat;
 
         // ---- GRID (neon) ----
@@ -402,12 +400,12 @@
             const mat = new BABYLON.PBRMaterial('bldMat', scene);
             const baseColor = new BABYLON.Color3(0.1+Math.random()*0.2, 0.1+Math.random()*0.2, 0.3+Math.random()*0.3);
             mat.albedoColor = baseColor;
-            mat.roughness = 0.4; mat.metallic = 0.5;
-            mat.emissiveColor = baseColor.clone().scale(0.2);
+            mat.roughness = 0.6; mat.metallic = 0.2;
+            mat.emissiveColor = baseColor.clone().scale(0.3);
             mat.environmentTexture = envTexture;
             mat.albedoTexture = windowTex;
             mat.emissiveTexture = windowTex;
-            mat.emissiveIntensity = 0.6;
+            mat.emissiveIntensity = 1.0;
             mesh.material = mat;
             mesh.freezeWorldMatrix();
 
@@ -828,8 +826,11 @@
             updateHUD();
 
             const col = PLT.skyColor;
-            scene.clearColor = new BABYLON.Color3(col.r * 0.7, col.g * 0.7, col.b * 0.7);
-            scene.fogColor = new BABYLON.Color3(0.03, 0.01, 0.06);
+            scene.clearColor = new BABYLON.Color3(
+                0.03 + col.r * 0.08,
+                0.01 + col.g * 0.08,
+                0.06 + col.b * 0.08
+            );
         }
 
         function updateCitizens(delta) {
