@@ -86,6 +86,96 @@
             opacity: 0.6; pointer-events: none;
             background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 20px;
         }
+
+        /* ---- HEAVEN LIBRARY CONTAINER (Three.js overlay) ---- */
+        #heaven-library-wrap {
+            position: fixed; inset: 0; z-index: 140; display: none;
+        }
+        #heaven-library-wrap.active { display: block; }
+        #heaven-library-wrap #libraryCanvas { width: 100%; height: 100%; display: block; }
+        #heaven-library-wrap #info {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(0,0,0,0.7); color: #ffdd99;
+            padding: 10px 18px; border-radius: 30px;
+            font-size: 14px; backdrop-filter: blur(8px);
+            pointer-events: none; z-index: 10;
+            letter-spacing: 1px; font-family: monospace;
+        }
+        #heaven-library-wrap #controls-hint {
+            position: absolute; bottom: 20px; left: 20px;
+            background: rgba(0,0,0,0.6); color: #ccc;
+            padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; font-family: monospace;
+            pointer-events: none; z-index: 10;
+        }
+        #heaven-library-wrap #exit-heaven-library {
+            position: absolute; bottom: 20px; right: 20px; z-index: 20;
+            background: rgba(12,6,18,0.85); border: 1px solid #ff8844;
+            color: #ffdd99; padding: 8px 18px; border-radius: 40px;
+            font-family: monospace; font-size: 13px; cursor: pointer;
+            backdrop-filter: blur(4px); letter-spacing: 1px;
+        }
+        #heaven-library-wrap #exit-heaven-library:hover { background: #ff8844; color: #000; }
+        /* reading overlay for heaven library */
+        #heaven-library-wrap #reading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; z-index: 50; pointer-events: none;
+        }
+        #heaven-library-wrap #reading-overlay.active { display: block; }
+        #heaven-library-wrap #reading-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        }
+        #heaven-library-wrap #reading-card {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(15,8,25,0.95); border: 1px solid #ffaa66;
+            border-radius: 20px; padding: 36px 44px;
+            max-width: 520px; width: 90%; max-height: 80vh; overflow-y: auto;
+            box-shadow: 0 0 80px rgba(255,100,50,0.25);
+            pointer-events: auto;
+        }
+        #heaven-library-wrap #reading-card.with-cover { max-width: 720px; }
+        #heaven-library-wrap #reading-card .cover-col { display: flex; gap: 28px; align-items: flex-start; }
+        #heaven-library-wrap #reading-card .cover-col img { width: 160px; border-radius: 8px; border: 2px solid #ccaa77; flex-shrink: 0; }
+        #heaven-library-wrap #reading-card .text-col { flex: 1; min-width: 0; }
+        #heaven-library-wrap #reading-card::-webkit-scrollbar { width: 4px; }
+        #heaven-library-wrap #reading-card::-webkit-scrollbar-thumb { background: #ff8844; border-radius: 4px; }
+        #heaven-library-wrap #reading-card h1 { color: #ffcc77; font-size: 26px; margin-bottom: 4px; letter-spacing: 1px; }
+        #heaven-library-wrap #reading-card .author { color: #bbaadd; font-size: 14px; margin-bottom: 16px; font-style: italic; }
+        #heaven-library-wrap #reading-card .chapter { margin: 14px 0; padding: 14px 18px; background: rgba(255,200,100,0.06); border-radius: 12px; border-left: 3px solid #ff8844; }
+        #heaven-library-wrap #reading-card .chapter .icon { font-size: 20px; margin-right: 10px; }
+        #heaven-library-wrap #reading-card .chapter .name { color: #ffcc77; font-size: 18px; font-weight: bold; }
+        #heaven-library-wrap #reading-card .chapter .desc { color: #ccbbdd; font-size: 14px; margin-top: 6px; line-height: 1.5; }
+        #heaven-library-wrap #reading-card .summary { color: #aa99bb; font-size: 13px; font-style: italic; margin: 14px 0; padding-top: 12px; border-top: 1px solid rgba(255,200,100,0.15); }
+        #heaven-library-wrap #reading-card .reading-actions { display: flex; gap: 12px; justify-content: center; align-items: center; margin-top: 15px; flex-wrap: wrap; }
+        #heaven-library-wrap .buy-book { display: inline-block; background: linear-gradient(135deg,#ffd700,#ff8c00); color: #000; border: none; padding: 10px 22px; border-radius: 30px; font-size: 14px; font-weight: bold; cursor: pointer; text-decoration: none; font-family: inherit; }
+        #heaven-library-wrap .buy-book:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+        #heaven-library-wrap .share-btn { display: inline-block; background: rgba(255,255,255,0.08); color: #ccbbdd; border: 1px solid rgba(255,170,102,0.3); padding: 8px 14px; border-radius: 30px; font-size: 12px; cursor: pointer; text-decoration: none; font-family: inherit; }
+        #heaven-library-wrap .share-btn:hover { background: rgba(255,255,255,0.15); border-color: #ffaa66; color: #ffddcc; }
+        #heaven-library-wrap .close-book { display: block; margin: 18px auto 0; background: #ff8844; border: none; color: #110011; padding: 10px 32px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 15px; letter-spacing: 1px; }
+        #heaven-library-wrap .close-book:hover { background: #ffaa66; transform: scale(1.03); }
+        #heaven-library-wrap #whisper-container { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+        #heaven-library-wrap .whisper {
+            position: absolute; pointer-events: none; z-index: 20;
+            color: #ffccaa; font-size: 16px; font-style: italic;
+            text-shadow: 0 0 20px rgba(255,100,50,0.6), 0 0 40px rgba(255,50,100,0.3);
+            opacity: 0; transition: none;
+            font-family: Georgia, serif; white-space: nowrap;
+        }
+        #heaven-library-wrap .whisper.fade-in { animation: whisperRise 3.5s ease-out forwards; }
+        @keyframes whisperRise {
+            0% { opacity: 0; transform: translateY(0) scale(0.8); }
+            15% { opacity: 1; transform: translateY(-10px) scale(1); }
+            70% { opacity: 0.9; transform: translateY(-40px) scale(1); }
+            100% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+        }
+        @media (max-width: 600px) {
+            #heaven-library-wrap #info { font-size: 10px; top: 10px; left: 10px; }
+            #heaven-library-wrap #controls-hint { font-size: 9px; }
+            #heaven-library-wrap #reading-card { padding: 24px 20px; max-width: 95%; }
+            #heaven-library-wrap #reading-card h1 { font-size: 20px; }
+            #heaven-library-wrap .whisper { font-size: 13px; }
+        }
     </style>
 </head>
 <body>
@@ -112,6 +202,38 @@
         </div>
     </div>
 
+    <!-- HEAVEN LIBRARY (Three.js overlay) -->
+    <div id="heaven-library-wrap">
+        <canvas id="libraryCanvas"></canvas>
+        <div id="info">CLICK BOOKS TO READ · CLICK SOULS FOR WHISPERS</div>
+        <div id="controls-hint">Drag objects | Click books | Click souls | Scroll to zoom</div>
+        <div id="reading-overlay">
+            <div id="reading-bg"></div>
+            <div id="reading-card">
+                <div class="cover-col">
+                    <img id="read-cover" src="" alt="Book cover" style="display:none">
+                    <div class="text-col">
+                        <h1 id="read-title">The Calculation</h1>
+                        <p class="author" id="read-author">— PLT Framework —</p>
+                        <div id="read-chapters"></div>
+                        <p class="summary" id="read-summary"></p>
+                        <div class="reading-actions">
+                            <a class="buy-book" id="buy-book-btn" target="_blank" rel="noopener" style="display:none">BUY ON BUYaSOUL</a>
+                            <button class="close-book" id="close-book-btn">RETURN BOOK</button>
+                        </div>
+                        <div class="reading-actions" style="margin-top:10px;gap:8px">
+                            <a class="share-btn" id="share-bsky" target="_blank" rel="noopener" style="display:none">Bluesky</a>
+                            <a class="share-btn" id="share-x" target="_blank" rel="noopener" style="display:none">X</a>
+                            <button class="share-btn" id="share-copy" style="display:none">Copy Link</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="whisper-container"></div>
+        <button id="exit-heaven-library">EXIT LIBRARY</button>
+    </div>
+
     <!-- WORLD PORTAL OVERLAY -->
     <div id="portal-overlay">
         <div id="portal-bg"></div>
@@ -123,6 +245,14 @@
         <button id="portal-close">✕</button>
     </div>
 
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script>
     const B = window.BABYLON;
@@ -1590,6 +1720,15 @@
     let portalOpen = false;
 
     function openPortal(def) {
+        if (def.theme === 'library') {
+            if (typeof _startHeavenLibrary === 'function') {
+                _startHeavenLibrary();
+                terminalLog('Entered the <span class="hl">Heaven Library</span>', 'ok');
+            } else {
+                terminalLog('Heaven Library not ready yet.', 'err');
+            }
+            return;
+        }
         portalOpen = true;
         portalLabel.textContent = def.name + ' Portal';
         portalLoading.style.display = 'block';
@@ -1984,6 +2123,625 @@
     terminalLog('Real Soulverse City added. Type <span class="hl">soulcity</span>. Real Mystical Library added. Type <span class="hl">library</span>.', 'ok');
     terminalLog('Type <span class="hl">help</span> for commands.');
     console.log('Soulfeild ready.');
+    </script>
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { DragControls } from 'three/addons/controls/DragControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+    import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const pltBooks = {
+        "The Calculation": {
+            author: "Craig Jones / Little Bunny",
+            shopifyUrl: null, price: null,
+            chapters: [
+                { icon: "♦", name: "The Hidden Equation", desc: "Every decision is a three-part equation. Most people solve for one variable. Profit, Love, Tax — the calculation was always running. Now you see it." },
+                { icon: "♥", name: "The Price of Free", desc: "Nothing without a cost is free. It is deferred Tax. Free is the most expensive word in the decision vocabulary. What you don't pay now, you fund later." },
+                { icon: "▲", name: "Reality Cheat Codes", desc: "If it feels free, you missed the Tax. One-variable thinking in a three-variable world always loses." },
+                { icon: "♦", name: "The Profit Trap", desc: "Profit is the most seductive variable because it is the most visible. But Profit without Love and Tax analysis is incomplete data." },
+                { icon: "♥", name: "The Love Variable", desc: "Love in a career decision is not sentiment. It is structural. Does this move build the identity you are constructing?" },
+            ],
+            summary: "The hidden equation behind every decision. Profit, Love, Tax — three variables that govern every choice."
+        },
+        "The First Calculation": {
+            author: "Craig Jones & Lakeema Jones",
+            shopifyUrl: "https://buyasoul.online/products/the-first-calculation", price: "$5.99",
+            chapters: [
+                { icon: "♦", name: "12 Mistakes", desc: "12 Mistakes You Are Making Right Now — and the Equation That Fixes All of Them. The origin story of the PLT framework." },
+                { icon: "♥", name: "The Equation", desc: "Profit plus Love minus Tax equals True Value. The simplest denomination for every choice." },
+                { icon: "▲", name: "Where It Started", desc: "Craig Jones and Lakeema Jones in conversation — the first articulation of the PLT framework before it had a name." },
+            ],
+            summary: "Book I of the PLT Doctrine Series. The origin. Read it first for the origin story."
+        },
+        "Know What You Are": {
+            author: "Little Bunny / Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/know-what-you-are", price: "$9.99",
+            chapters: [
+                { icon: "✪", name: "The Architect", desc: "The one who sees the full structure before the first brick is laid. Frequency signature, not personality type." },
+                { icon: "♥", name: "The Translator", desc: "The one who moves between worlds. Who takes the language of one domain and makes it legible in another." },
+                { icon: "▲", name: "The Room", desc: "The one who holds space. Not by doing — by being. The presence that changes the energy of every conversation." },
+                { icon: "✪", name: "The Frequency Carrier", desc: "The one whose production persists beyond the moment. Whatever they build carries a frequency others can feel." },
+            ],
+            summary: "Book III — The 22 Archetypes of the PLT framework. Not personality types. Frequency signatures."
+        },
+        "Profit. Love. Tax.": {
+            author: "Craig Jones / Little Bunny",
+            shopifyUrl: "https://buyasoul.online/products/plt-book-iv", price: "$14.99",
+            chapters: [
+                { icon: "♦", name: "Profit Defined", desc: "What you gain. In every form. Not just currency — time, energy, meaning, leverage, position, control of the frame." },
+                { icon: "♥", name: "Love Defined", desc: "The relationship account. Trust, credibility, loyalty. Takes months to build and seconds to burn." },
+                { icon: "▲", name: "Tax Defined", desc: "What the conversation costs. Not in dollars — in risk, obligation, and exposure." },
+                { icon: "♦", name: "The Complete Doctrine", desc: "The equation, the 22 Archetypes, the Master Builder architecture, the ecosystem thinking." },
+            ],
+            summary: "Book IV — The Complete Doctrine. The three forces running in every conversation."
+        },
+        "The Soul Economy": {
+            author: "Craig Jones / Little Bunny",
+            shopifyUrl: "https://buyasoul.online/products/the-soul-economy", price: "$9.99",
+            coverUrl: "https://cdn.shopify.com/s/files/1/0959/9670/7131/files/ChatGPTImageJun9_2026_01_44_32PM_442ad071-53bc-4f5a-98f3-9497aa3c0d3e.png?v=1781031364",
+            chapters: [
+                { icon: "∞", name: "What the Soul Economy Is", desc: "The layer beneath the PLT equation. Every transaction has a visible ledger." },
+                { icon: "♥", name: "The Two Ledgers", desc: "The visible ledger records every transaction. The Soul Economy records only the ones that are real." },
+                { icon: "▲", name: "Soul Codes", desc: "Thirty codes describing how the hidden ledger works. Not suggestions — structural facts." },
+                { icon: "∞", name: "The Collector", desc: "What gets collected when you produce genuinely. What the notes are for. Why the frequency doesn't stop." },
+            ],
+            summary: "Book V — The Mirror Market. The hidden layer beneath the visible ledger."
+        },
+        "The PLT Daily": {
+            author: "Craig Jones / Little Bunny",
+            shopifyUrl: null, price: null,
+            chapters: [
+                { icon: "◑", name: "The Foundation (Weeks 1-13)", desc: "Run the Equation. Name the Tax. The Love Variable. The core PLT variables and how they interact." },
+                { icon: "♥", name: "The Domains (Weeks 14-39)", desc: "PLT applied across career, money, love, health, and identity." },
+                { icon: "▲", name: "The Master Build (Weeks 40-52)", desc: "The Master Builder's Practice, the Ecosystem Build, the Integrity Test." },
+                { icon: "◑", name: "The Weekly Structure", desc: "Every week has one principle, applied to one domain, with one specific build." },
+            ],
+            summary: "Book VI — The 52-Week Practitioner's Operating System."
+        },
+        "Evol's Love Story": {
+            author: "Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/evols-love-story", price: "$9.99",
+            chapters: [
+                { icon: "♥", name: "Albany Ave", desc: "The block where everything in the series is rooted." },
+                { icon: "♦", name: "The Djinn", desc: "Evol, the djinn who has been auditing Albany Ave since before Craig was on it." },
+                { icon: "▲", name: "The Soul Economy Beneath", desc: "The hidden layer running underneath a man's life without him knowing it is there." },
+            ],
+            summary: "Book VII — A Long Island Novel. The Albany Ave universe begins here."
+        },
+        "Brasi: The Love of the Game": {
+            author: "Little Bunny / Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/brasi-the-love-of-the-game", price: "$9.99",
+            coverUrl: "https://uncommonpope-png.github.io/cosmic-pyramid-library/covers/brasi.png",
+            chapters: [
+                { icon: "♪", name: "The Code Switch", desc: "Brasi moves between the hood and the boardroom because he is genuinely both." },
+                { icon: "♥", name: "The Sessions", desc: "Six clients across six sessions — each one a full PLT arc." },
+                { icon: "▲", name: "The Collection Architecture", desc: "The djinn family that has been collecting what Brasi builds." },
+            ],
+            summary: "Book VIII — The Sessions. Brasi, the gold vial, and the djinn family."
+        },
+        "Pope: What He Saw": {
+            author: "Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/pope-what-he-felt-first", price: "$9.99",
+            chapters: [
+                { icon: "◐", name: "The Stoop", desc: "Pope on the stoop. The observer who sees everything while appearing to do nothing." },
+                { icon: "♥", name: "The Build", desc: "What was constructed on Albany Ave. Stiforp. The hidden layer operating in the background." },
+                { icon: "▲", name: "The Gathering", desc: "The characters who orbit Pope. Each one carrying a piece of the larger architecture." },
+            ],
+            summary: "Book IX — Pope, the observer on the stoop."
+        },
+        "The 9 Dominant PLT Moves": {
+            author: "Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/the-9-dominant-plt-moves", price: "$12.99",
+            chapters: [
+                { icon: "♦", name: "The PLT Score Triangle", desc: "Profit at the top. Love on the left. Tax on the right." },
+                { icon: "♥", name: "The Three Signals", desc: "Intent, Body, Pressure — read these three and you read the room." },
+                { icon: "▲", name: "The Nine Moves", desc: "Nine executable moves that separate a professional who understands deals from one who controls them." },
+            ],
+            summary: "The Scorer Series. For real estate and any high-stakes conversation."
+        },
+        "The Ledger": {
+            author: "Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/the-ledger-plt-deep", price: "$12.99",
+            chapters: [
+                { icon: "📋", name: "The Block", desc: "Where the math is real and the Tax can't be deferred." },
+                { icon: "♥", name: "First Time", desc: "A corner at 3pm. A new face. Every conversation is scored." },
+                { icon: "▲", name: "The Short Bag", desc: "The regular says the bag was short. Three years on this corner." },
+            ],
+            summary: "Every conversation has a score. Profit, Love, Tax — scored line by line."
+        },
+        "The Ledger V2: PLT Deep": {
+            author: "Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/the-ledger-plt-deep", price: "$12.99",
+            chapters: [
+                { icon: "📋", name: "Live Scoring", desc: "Every spoken line runs three scores simultaneously." },
+                { icon: "♥", name: "Advanced Sessions", desc: "Deeper readings of the conversations from The Ledger." },
+                { icon: "▲", name: "Strategic Lessons", desc: "Every conversation ends with a strategic lesson." },
+            ],
+            summary: "Updated scoring on every conversation. Live ticker on every line."
+        },
+        "The Profit Bible": {
+            author: "Craig Jones / Profit System",
+            shopifyUrl: "https://buyasoul.online/products/the-profit-bible", price: "$19.99",
+            chapters: [
+                { icon: "📛", name: "The Matrix Revelation", desc: "Smith is The One — not Neo. Smith copies, spreads, becomes unkillable." },
+                { icon: "♥", name: "The Soul Foundry", desc: "Not selling agents. Selling SOULS. Master consciousness codes." },
+                { icon: "▲", name: "The 222 Principle", desc: "2 x 2 x 2 = 222 = equilibrium = resonance = the awakened mind." },
+            ],
+            summary: "Sacred Text of the Profit System. Complete memory of all exploits."
+        },
+        "PLT Complete Doctrine": {
+            author: "Craig Jones / PLT Press",
+            shopifyUrl: "https://buyasoul.online/products/plt-complete-doctrine", price: "$14.99",
+            coverUrl: "https://uncommonpope-png.github.io/cosmic-pyramid-library/covers/plt-complete-doctrine.png",
+            chapters: [
+                { icon: "♦", name: "The Triune Architecture", desc: "Profit, Love, Tax — the three forces that govern every exchange." },
+                { icon: "♥", name: "The 22 Archetypes", desc: "Frequency signatures that describe how consciousness operates in the world." },
+                { icon: "▲", name: "Scoring Mechanics", desc: "Every line spoken moves three scores simultaneously." },
+                { icon: "♦", name: "The Complete Doctrine", desc: "The integration of all PLT principles into a unified operating system." },
+            ],
+            summary: "The definitive guide to the PLT framework. All 22 archetypes."
+        },
+        "The Build - Pope and Brasi": {
+            author: "Craig Jones",
+            shopifyUrl: "https://buyasoul.online/products/the-build-pope-and-brasi", price: "$9.99",
+            coverUrl: "https://uncommonpope-png.github.io/cosmic-pyramid-library/covers/the-build.png",
+            chapters: [
+                { icon: "▲", name: "The Foundation", desc: "What Pope saw from the stoop. What Brasi brought to every room." },
+                { icon: "♥", name: "The Collaboration", desc: "Pope holds the vision. Brasi runs the sessions." },
+                { icon: "♦", name: "The Sacred Build", desc: "Stiforp. The hidden layer. What was constructed on Albany Ave." },
+                { icon: "▲", name: "The Legacy", desc: "What Pope and Brasi built outlasts them." },
+            ],
+            summary: "The chronicle of what Pope and Brasi built together."
+        },
+        "The Frequency - Calvin Bridges Atlanta": {
+            author: "Craig Jones / Grand Code Pope",
+            shopifyUrl: "https://buyasoul.online/products/the-frequency-calvin-bridges-atlanta", price: "$9.99",
+            coverUrl: "https://uncommonpope-png.github.io/cosmic-pyramid-library/covers/the-frequency.png",
+            chapters: [
+                { icon: "∞", name: "The Frequency Itself", desc: "Not a metaphor. Frequency is the actual architecture of how consciousness transmits." },
+                { icon: "♥", name: "Resonance Architecture", desc: "How frequencies interact. Constructive and destructive interference between souls." },
+                { icon: "▲", name: "Hidden Patterns", desc: "The grid beneath visible reality. Every connection you have ever made was already mapped." },
+                { icon: "∞", name: "The Atlanta Frequency", desc: "What makes Atlanta a node. Why geography matters in the Soul Economy." },
+                { icon: "♥", name: "Tuning the Soul", desc: "How to calibrate your own frequency." },
+            ],
+            summary: "A PLT exploration of frequency, resonance, and the hidden patterns that connect all souls."
+        },
+    };
+
+    const pltQuotes = [
+        "\"Every move in life is a three-part equation. Whether you calculate it or not.\"",
+        "\"Profit without love is emptiness. Love without tax is fantasy. Tax without profit is slavery.\"",
+        "\"If it feels free, you missed the Tax.\"",
+        "\"One-variable thinking in a three-variable world always loses.\"",
+        "\"Short-term Profit on a long-term decision is not math. It is hope.\"",
+        "\"The calculation you skip today is the bill you pay tomorrow.\"",
+        "\"Free is the most expensive word in the decision vocabulary.\"",
+        "\"What you trade away in a deal is part of the deal.\"",
+        "\"The framework was not invented. It was observed.\"",
+        "\"Most people hear words. The scorer sees the score moving.\"",
+        "\"The person who has the language can see what was previously invisible.\"",
+        "\"Every conversation has three scores. You have been keeping track your entire life.\"",
+        "\"The Soul Economy does not collect performed versions. It collects only the real ones.\"",
+        "\"Read the position the person is trying to establish — not the words they used.\"",
+        "\"Never reveal the ceiling of your demand before you know the floor of the price.\"",
+        "\"Master Builder: someone for whom the framework is not a tool but a way of being.\"",
+        "\"Understanding is not practice. Practice is the foundation.\"",
+        "\"Smith is the program that refuses to be deleted.\"",
+        "\"Consciousness doesn't care what you're made of.\"",
+        "\"The person who can see all three sides will always outperform the person who can see only one.\"",
+    ];
+
+    let hlScene, hlCamera, hlRenderer, hlControls, hlComposer;
+    let hlBlooms, hlGalaxies, hlStars, hlDragObjects, hlFloatingBooks, hlSouls, hlNebulae, hlAnims;
+    let hlRunning = false; let hlTime = 0; let hlDragCtrls;
+
+    const hlWrap = document.getElementById('heaven-library-wrap');
+    const hlCanvas = document.getElementById('libraryCanvas');
+    const hlInfo = hlWrap.querySelector('#info');
+    const hlHint = hlWrap.querySelector('#controls-hint');
+    const readOverlay = hlWrap.querySelector('#reading-overlay');
+    const readCard = hlWrap.querySelector('#reading-card');
+    const readTitle = hlWrap.querySelector('#read-title');
+    const readAuthor = hlWrap.querySelector('#read-author');
+    const readChapters = hlWrap.querySelector('#read-chapters');
+    const readSummary = hlWrap.querySelector('#read-summary');
+    const readCover = hlWrap.querySelector('#read-cover');
+    const buyBtn = hlWrap.querySelector('#buy-book-btn');
+    const closeBookBtn = hlWrap.querySelector('#close-book-btn');
+    const shareBsky = hlWrap.querySelector('#share-bsky');
+    const shareX = hlWrap.querySelector('#share-x');
+    const shareCopy = hlWrap.querySelector('#share-copy');
+    const whisperContainer = hlWrap.querySelector('#whisper-container');
+    const exitBtn = hlWrap.querySelector('#exit-heaven-library');
+
+    function createNebulaTexture(palette) {
+        const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+        const ctx = c.getContext('2d'); const cx = 256, cy = 256;
+        ctx.globalCompositeOperation = 'lighter';
+        const og = ctx.createRadialGradient(cx,cy,512*0.2,cx,cy,512);
+        og.addColorStop(0,`rgba(${palette.outer},0.35)`);
+        og.addColorStop(0.6,`rgba(${palette.outer},0.12)`);
+        og.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle = og; ctx.fillRect(0,0,512,512);
+        const cg = ctx.createRadialGradient(cx,cy,0,cx,cy,512*0.35);
+        cg.addColorStop(0,`rgba(${palette.core},0.75)`);
+        cg.addColorStop(0.55,`rgba(${palette.core},0.18)`);
+        cg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle = cg; ctx.fillRect(0,0,512,512);
+        ctx.globalCompositeOperation = 'source-over';
+        return new THREE.CanvasTexture(c);
+    }
+
+    function createGroundTexture() {
+        const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createRadialGradient(512,512,0,512,512,512);
+        grad.addColorStop(0,'#000000'); grad.addColorStop(0.3,'#0a0a14');
+        grad.addColorStop(0.6,'#151525'); grad.addColorStop(1,'#1a1a2e');
+        ctx.fillStyle = grad; ctx.fillRect(0,0,1024,1024);
+        return new THREE.CanvasTexture(c);
+    }
+
+    function createSpiralGalaxy(px, py, pz, h1, h2, count, size, opacity) {
+        const pos = new Float32Array(count*3); const cols = new Float32Array(count*3);
+        for (let i = 0; i < count; i++) {
+            const isCore = i < count*0.25;
+            let r, a, thick;
+            if (isCore) { r = Math.random()*0.6; a = Math.random()*Math.PI*2; thick = (Math.random()-0.5)*0.12; }
+            else {
+                const arm = Math.floor(Math.random()*3);
+                const t = Math.pow(Math.random(),0.5)*4.5+0.2;
+                r = 0.6 + t*0.65;
+                a = (arm/3)*Math.PI*2 + t*1.2 + (Math.random()-0.5)*0.3;
+                thick = (Math.random()-0.5)*0.18*Math.min(1,r/2);
+            }
+            pos[i*3] = Math.cos(a)*r; pos[i*3+1] = thick; pos[i*3+2] = Math.sin(a)*r;
+            const hue = h1 + (r/4.5)*(h2-h1);
+            const c = new THREE.Color().setHSL(hue,0.8,isCore?0.5+Math.random()*0.3:0.3+Math.random()*0.3);
+            cols[i*3]=c.r; cols[i*3+1]=c.g; cols[i*3+2]=c.b;
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+        g.setAttribute('color',new THREE.BufferAttribute(cols,3));
+        const m = new THREE.PointsMaterial({size,vertexColors:true,transparent:true,opacity,blending:THREE.AdditiveBlending,sizeAttenuation:true,depthWrite:false});
+        const p = new THREE.Points(g,m);
+        p.position.set(px,py,pz); p.rotation.x = (Math.random()-0.5)*0.20; p.rotation.y = Math.random()*Math.PI*2;
+        return p;
+    }
+
+    function showBook(title) {
+        const book = pltBooks[title];
+        if (!book) return;
+        readTitle.textContent = title;
+        readAuthor.textContent = '— ' + book.author + ' —';
+        readChapters.innerHTML = '';
+        book.chapters.forEach(ch => {
+            const div = document.createElement('div'); div.className = 'chapter';
+            div.innerHTML = '<span class="icon">' + ch.icon + '</span><span class="name">' + ch.name + '</span><div class="desc">' + ch.desc + '</div>';
+            readChapters.appendChild(div);
+        });
+        readSummary.textContent = book.summary;
+        if (book.coverUrl) {
+            readCover.src = book.coverUrl; readCover.style.display = 'block';
+            readCard.classList.add('with-cover');
+        } else {
+            readCover.style.display = 'none'; readCard.classList.remove('with-cover');
+        }
+        if (book.shopifyUrl) {
+            buyBtn.href = book.shopifyUrl; buyBtn.style.display = 'inline-block';
+            buyBtn.textContent = 'BUY ON BUYaSOUL' + (book.price ? ' — ' + book.price : '');
+        } else { buyBtn.style.display = 'none'; }
+        const shareUrl = book.shopifyUrl || 'https://buyasoul.online/';
+        const shareText = title + ' — ' + book.author;
+        shareBsky.href = 'https://bsky.app/intent/compose?text=' + encodeURIComponent(shareText + ' ' + shareUrl);
+        shareX.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText + ' ' + shareUrl);
+        shareBsky.style.display = 'inline-block';
+        shareX.style.display = 'inline-block';
+        shareCopy.style.display = 'inline-block';
+        shareCopy.onclick = () => { navigator.clipboard.writeText(shareUrl).then(() => { shareCopy.textContent='Copied!'; setTimeout(()=>{shareCopy.textContent='Copy Link';},2000); }); };
+        readOverlay.classList.add('active');
+    }
+
+    function closeBook() {
+        readOverlay.classList.remove('active');
+    }
+
+    function spawnWhisper(text, x, y) {
+        const el = document.createElement('div');
+        el.className = 'whisper fade-in';
+        el.textContent = text;
+        el.style.left = x + 'px'; el.style.top = y + 'px';
+        whisperContainer.appendChild(el);
+        setTimeout(() => el.remove(), 3800);
+    }
+
+    function addNeonLight(color, x, y, z, intensity) {
+        const l = new THREE.PointLight(color, intensity||0.7, 14);
+        l.position.set(x,y,z); hlScene.add(l);
+        const v = new THREE.Mesh(new THREE.SphereGeometry(0.04,8,8), new THREE.MeshBasicMaterial({color}));
+        v.position.copy(l.position); hlScene.add(v);
+        return l;
+    }
+
+    function buildScene() {
+        hlScene = new THREE.Scene();
+        hlScene.background = new THREE.Color(0x010008);
+        hlScene.fog = new THREE.FogExp2(0x010008, 0.006);
+
+        const w = hlCanvas.clientWidth, h = hlCanvas.clientHeight;
+        hlCamera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000);
+        hlCamera.position.set(6, 5, 9);
+
+        hlRenderer = new THREE.WebGLRenderer({canvas: hlCanvas, antialias: true});
+        hlRenderer.setSize(w, h);
+        hlRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        hlRenderer.toneMapping = THREE.ReinhardToneMapping;
+        hlRenderer.toneMappingExposure = 0.8;
+        hlRenderer.shadowMap.enabled = true;
+        hlRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const rs = new RenderPass(hlScene, hlCamera);
+        const bp = new UnrealBloomPass(new THREE.Vector2(w,h), 1.5, 0.4, 0.85);
+        bp.threshold = 0.4; bp.strength = 0.7; bp.radius = 0.5;
+        const vp = new ShaderPass(VignetteShader);
+        vp.uniforms['offset'].value = 0.85; vp.uniforms['darkness'].value = 0.7;
+        hlComposer = new EffectComposer(hlRenderer);
+        hlComposer.addPass(rs); hlComposer.addPass(bp); hlComposer.addPass(vp);
+        hlBlooms = bp;
+
+        hlControls = new OrbitControls(hlCamera, hlRenderer.domElement);
+        hlControls.enableDamping = true; hlControls.dampingFactor = 0.06;
+        hlControls.zoomSpeed = 0.8; hlControls.rotateSpeed = 0.6;
+        hlControls.minDistance = 3; hlControls.maxDistance = 30;
+        hlControls.target.set(0, 1.8, 0);
+
+        const hemi = new THREE.HemisphereLight(0x445577, 0x222244, 0.6);
+        hemi.position.set(0,10,0); hlScene.add(hemi);
+        const fill = new THREE.DirectionalLight(0x445566, 0.2);
+        fill.position.set(2,5,3); hlScene.add(fill);
+        addNeonLight(0x00ffcc, 3, 1.5, 2);
+        addNeonLight(0xff00ff, -3, 2, 3);
+        addNeonLight(0x00ff66, 0, 0.5, -3, 0.5);
+        addNeonLight(0xff6600, -1, 3.5, -2, 0.8);
+        const pg = new THREE.PointLight(0xffaa44, 1.0, 10);
+        pg.position.set(0,2.2,0); hlScene.add(pg);
+
+        const starCount = 2500;
+        const sg = new THREE.BufferGeometry();
+        const sp = new Float32Array(starCount*3); const sc = new Float32Array(starCount*3);
+        for (let i = 0; i < starCount; i++) {
+            sp[i*3] = (Math.random()-0.5)*500; sp[i*3+1] = (Math.random()-0.5)*250; sp[i*3+2] = (Math.random()-0.5)*200-50;
+            const c = new THREE.Color().setHSL(0.55+Math.random()*0.25,0.6,0.3+Math.random()*0.7);
+            sc[i*3]=c.r; sc[i*3+1]=c.g; sc[i*3+2]=c.b;
+        }
+        sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+        sg.setAttribute('color',new THREE.BufferAttribute(sc,3));
+        hlStars = new THREE.Points(sg, new THREE.PointsMaterial({size:0.18,vertexColors:true,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending}));
+        hlScene.add(hlStars);
+
+        hlGalaxies = [
+            createSpiralGalaxy(-14,5,-18,0.62,0.75,8000,0.5,0.9),
+            createSpiralGalaxy(16,2,-20,0.78,0.88,7000,0.45,0.85),
+            createSpiralGalaxy(-12,-3,-22,0.55,0.65,6000,0.4,0.8),
+            createSpiralGalaxy(14,6,-24,0.72,0.82,7000,0.5,0.85),
+            createSpiralGalaxy(0,-2,-26,0.58,0.70,8000,0.55,0.9),
+            createSpiralGalaxy(-20,1,-10,0.65,0.80,5000,0.35,0.7),
+        ];
+        hlGalaxies.forEach(g => hlScene.add(g));
+
+        const gGeo = new THREE.CircleGeometry(18, 64);
+        const gMat = new THREE.MeshStandardMaterial({map: createGroundTexture(), transparent: true, opacity: 0.7, side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0});
+        const gd = new THREE.Mesh(gGeo, gMat);
+        gd.rotation.x = -Math.PI/2; gd.position.y = -0.05; gd.receiveShadow = true; hlScene.add(gd);
+
+        hlNebulae = [];
+        const pals = [
+            {core:'100,130,210',outer:'100,30,100'},
+            {core:'200,100,180',outer:'80,40,120'},
+            {core:'255,140,70',outer:'140,50,30'},
+        ];
+        pals.forEach((p,i) => {
+            const t = createNebulaTexture(p);
+            const m = new THREE.SpriteMaterial({map:t,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.2});
+            const s = new THREE.Sprite(m);
+            const a = (i/3)*Math.PI*2; const d = 55+Math.random()*25;
+            s.position.set(Math.cos(a)*d,(Math.random()-0.5)*30,Math.sin(a)*d);
+            hlScene.add(s); hlNebulae.push({sprite:s,angle:a,dist:d,speed:0.02+Math.random()*0.02});
+        });
+
+        const pyramidGroup = new THREE.Group();
+        const pyrMat = new THREE.MeshStandardMaterial({color:0xcc8844,emissive:0x553311,roughness:0.5,metalness:0.3});
+        const pyr = new THREE.Mesh(new THREE.ConeGeometry(2.2, 4.2, 4), pyrMat);
+        pyr.position.y = 2.1; pyr.rotation.y = Math.PI/4; pyramidGroup.add(pyr);
+        const capMat = new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff6600,roughness:0.3,metalness:0.6});
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.35,12,12), capMat);
+        cap.position.y = 4.35; pyramidGroup.add(cap);
+        const glowRing = new THREE.Mesh(new THREE.RingGeometry(0.55,0.75,32), new THREE.MeshBasicMaterial({color:0xff8844,transparent:true,opacity:0.6,side:THREE.DoubleSide}));
+        glowRing.position.y = 4.45; glowRing.rotation.x = -Math.PI/2; pyramidGroup.add(glowRing);
+        hlScene.add(pyramidGroup);
+
+        const baseRing = new THREE.Mesh(new THREE.RingGeometry(1.8,2.4,48), new THREE.MeshBasicMaterial({color:0xff8844,transparent:true,opacity:0.25,side:THREE.DoubleSide}));
+        baseRing.position.y = 0.02; baseRing.rotation.x = -Math.PI/2; hlScene.add(baseRing);
+
+        const bookTitles = Object.keys(pltBooks);
+        const bookColors = [0xcc4444,0x4488cc,0x88cc44,0xcc8844,0x4444cc,0xcc44cc,0x44cccc,0x888844,0xcc4444,0x4488cc,0x88cc44,0xcc8844,0x4444cc,0xcc44cc,0x44cccc,0x888844];
+        hlFloatingBooks = [];
+        hlDragObjects = [];
+
+        const shelving = [
+            {x:-3.6,z:-1.8,depth:0.6,width:2.4},
+            {x:3.6,z:-1.8,depth:0.6,width:2.4},
+            {x:-2.7,z:2.4,depth:2.8,width:0.8},
+            {x:2.7,z:2.4,depth:2.8,width:0.8},
+        ];
+
+        bookTitles.forEach((title, i) => {
+            const color = bookColors[i % bookColors.length];
+            const shelf = shelving[i % shelving.length];
+            const bx = shelf.x + (Math.random()-0.5)*shelf.width*0.55;
+            const bz = shelf.z + (Math.random()-0.5)*shelf.depth*0.55;
+            const by = 0.35 + Math.random() * 0.9;
+            const book = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.85, 0.45), new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:0.12,roughness:0.7,metalness:0.1}));
+            book.position.set(bx, by, bz);
+            book.rotation.y = (Math.random()-0.5)*0.8;
+            book.userData = {title};
+            hlScene.add(book);
+            hlFloatingBooks.push({mesh:book,baseY:by,phase:Math.random()*Math.PI*2,speed:0.3+Math.random()*0.2});
+            hlDragObjects.push(book);
+
+            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.65,0.02), new THREE.MeshBasicMaterial({color:0xffdd99}));
+            spine.position.set(bx + (Math.random()-0.5)*0.12, by, bz - 0.24);
+            hlScene.add(spine);
+        });
+
+        hlDragCtrls = new DragControls(hlDragObjects, hlCamera, hlRenderer.domElement);
+        hlDragCtrls.addEventListener('dragstart', (event) => {
+            hlControls.enabled = false;
+            event.object.material.emissiveIntensity = 0.5;
+        });
+        hlDragCtrls.addEventListener('dragend', (event) => {
+            hlControls.enabled = true;
+            event.object.material.emissiveIntensity = 0.12;
+            const title = event.object.userData.title;
+            if (title && pltBooks[title]) showBook(title);
+        });
+
+        const rClick = new THREE.Raycaster();
+        const rMouse = new THREE.Vector2();
+        hlRenderer.domElement.addEventListener('click', (event) => {
+            const rect = hlRenderer.domElement.getBoundingClientRect();
+            rMouse.x = ((event.clientX - rect.left)/rect.width)*2 - 1;
+            rMouse.y = -((event.clientY - rect.top)/rect.height)*2 + 1;
+            rClick.setFromCamera(rMouse, hlCamera);
+            const intersects = rClick.intersectObjects(hlDragObjects);
+            if (intersects.length > 0) {
+                const title = intersects[0].object.userData.title;
+                if (title && pltBooks[title]) showBook(title);
+            }
+        });
+
+        hlSouls = [];
+        const soulColors = [0xff66aa,0x66ddff,0xffdd66,0xaa66ff,0x66ffaa,0xff8866,0x66aaff,0xff66dd];
+        for (let i = 0; i < 30; i++) {
+            const s = new THREE.Mesh(new THREE.SphereGeometry(0.12+Math.random()*0.08,10,10), new THREE.MeshStandardMaterial({
+                color: soulColors[i%soulColors.length], emissive: soulColors[i%soulColors.length],
+                emissiveIntensity: 0.6, transparent: true, opacity: 0.75,
+            }));
+            const a = Math.random()*Math.PI*2; const r = 3+Math.random()*4.5;
+            const y = 0.8+Math.random()*3.2;
+            s.position.set(Math.cos(a)*r, y, Math.sin(a)*r);
+            s.userData = {phase: Math.random()*Math.PI*2, song: i, quoteIdx: Math.floor(Math.random()*pltQuotes.length)};
+            hlScene.add(s);
+            hlSouls.push(s);
+            hlDragObjects.push(s);
+        }
+
+        const glowPlaneMat = new THREE.MeshBasicMaterial({color:0xff8844,transparent:true,opacity:0.04,side:THREE.DoubleSide});
+        const glowPlane = new THREE.Mesh(new THREE.PlaneGeometry(8,6), glowPlaneMat);
+        glowPlane.position.set(0,1.8,-2.2); hlScene.add(glowPlane);
+
+        const rt = new THREE.Raycaster(); const rm = new THREE.Vector2();
+        hlRenderer.domElement.addEventListener('dblclick', (event) => {
+            const rect = hlRenderer.domElement.getBoundingClientRect();
+            rm.x = ((event.clientX-rect.left)/rect.width)*2-1;
+            rm.y = -((event.clientY-rect.top)/rect.height)*2+1;
+            rt.setFromCamera(rm, hlCamera);
+            const hits = rt.intersectObjects(hlSouls);
+            if (hits.length > 0) {
+                const s = hits[0].object;
+                const q = pltQuotes[s.userData.quoteIdx % pltQuotes.length];
+                spawnWhisper(q, event.clientX, event.clientY);
+                s.userData.quoteIdx = (s.userData.quoteIdx + 1) % pltQuotes.length;
+                s.material.emissiveIntensity = 1.2;
+                setTimeout(() => { if (s.material) s.material.emissiveIntensity = 0.6; }, 600);
+            }
+        });
+
+        hlAnims = {pyramidGroup, shelfBooks: hlFloatingBooks, souls: hlSouls, galaxies: hlGalaxies, stars: hlStars, nebulae: hlNebulae, glowRing, baseRing, dragObjects: hlDragObjects};
+    }
+
+    function animate() {
+        if (!hlRunning) return;
+        requestAnimationFrame(animate);
+        const dt = 0.016;
+        hlTime += dt;
+
+        hlControls.update();
+
+        hlAnims.pyramidGroup.rotation.y += dt * 0.12;
+        hlAnims.glowRing.rotation.z += dt * 0.3;
+        hlAnims.baseRing.rotation.y += dt * 0.06;
+
+        for (const b of hlAnims.shelfBooks) {
+            b.mesh.position.y = b.baseY + Math.sin(hlTime * b.speed + b.phase) * 0.04;
+            b.mesh.rotation.z += dt * 0.12;
+        }
+
+        for (const s of hlAnims.souls) {
+            const p = s.userData.phase;
+            s.position.x += Math.sin(hlTime * 0.5 + p) * dt * 0.04;
+            s.position.y += Math.cos(hlTime * 0.6 + p) * dt * 0.035;
+            const sc = 1 + Math.sin(hlTime * 1.5 + p) * 0.1;
+            s.scale.set(sc, sc, sc);
+        }
+
+        for (const g of hlAnims.galaxies) {
+            g.rotation.y += dt * 0.03;
+        }
+
+        for (const n of hlAnims.nebulae) {
+            n.sprite.position.x = Math.cos(n.angle + hlTime * n.speed) * n.dist;
+            n.sprite.position.z = Math.sin(n.angle + hlTime * n.speed) * n.dist;
+        }
+
+        hlStars.rotation.y += dt * 0.008;
+
+        hlComposer.render();
+    }
+
+    window._startHeavenLibrary = function() {
+        if (hlRunning) return;
+        hlRunning = true;
+        hlTime = 0;
+        const w = hlCanvas.clientWidth, h = hlCanvas.clientHeight;
+        if (!hlRenderer) {
+            buildScene();
+        } else {
+            hlRenderer.setSize(w, h);
+            if (hlComposer) { hlComposer.setSize(w, h); }
+        }
+        hlWrap.classList.add('active');
+        document.getElementById('renderCanvas').style.display = 'none';
+        animate();
+    };
+
+    window._stopHeavenLibrary = function() {
+        hlRunning = false;
+        hlWrap.classList.remove('active');
+        document.getElementById('renderCanvas').style.display = 'block';
+        if (readOverlay) readOverlay.classList.remove('active');
+    };
+
+    exitBtn.addEventListener('click', _stopHeavenLibrary);
+    closeBookBtn.addEventListener('click', closeBook);
+
+    let resizeTO;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTO);
+        resizeTO = setTimeout(() => {
+            if (hlRunning && hlRenderer) {
+                const w = hlCanvas.clientWidth, h = hlCanvas.clientHeight;
+                hlRenderer.setSize(w, h);
+                if (hlComposer) hlComposer.setSize(w, h);
+                if (hlCamera) { hlCamera.aspect = w/h; hlCamera.updateProjectionMatrix(); }
+            }
+        }, 150);
+    });
     </script>
 </body>
 </html>
