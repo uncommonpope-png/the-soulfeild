@@ -360,10 +360,7 @@
             constellations.forEach(c => {
                 const pts = c.points.map(p => new BABYLON.Vector3(p[0], p[1], p[2]));
                 const line = BABYLON.MeshBuilder.CreateLines('constellation', { points: pts }, scene);
-                const mat = new BABYLON.LinesMaterial('lineMat', scene);
-                mat.color = new BABYLON.Color3(c.color[0], c.color[1], c.color[2]);
-                mat.opacity = 0.4;
-                line.material = mat;
+                line.color = new BABYLON.Color3(c.color[0], c.color[1], c.color[2]);
             });
         }
         createStarfield();
@@ -429,10 +426,7 @@
             ];
             const edgeLine = BABYLON.MeshBuilder.CreateLines('edges', { points: edgePoints }, scene);
             edgeLine.position = new BABYLON.Vector3(x, 0, z);
-            const edgeMat = new BABYLON.LinesMaterial('edgeMat', scene);
-            edgeMat.color = new BABYLON.Color3(0.7, 0.4, 1);
-            edgeMat.opacity = 0.7;
-            edgeLine.material = edgeMat;
+            edgeLine.color = new BABYLON.Color3(0.7, 0.4, 1);
 
             // ---- INTERIOR ----
             const interiorGroup = new BABYLON.TransformNode('interior');
