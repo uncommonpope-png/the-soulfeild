@@ -99,18 +99,10 @@
         </div>
     </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "@babylonjs/core": "https://cdn.babylonjs.com/esm/babylon.js",
-                "@babylonjs/post-processes": "https://cdn.babylonjs.com/esm/babylon.postProcess.js"
-            }
-        }
-    </script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
 
-    <script type="module">
-        import * as BABYLON from '@babylonjs/core';
-        import { DefaultRenderingPipeline } from '@babylonjs/post-processes';
+    <script>
+        const BABYLON = window.BABYLON;
 
         // ------------------------------------------------------------
         //  STATE
@@ -178,7 +170,7 @@
         camera.maxZ = 20000;
 
         // ---- RENDERING PIPELINE ----
-        const pipeline = new DefaultRenderingPipeline('pipeline', true, scene, [camera]);
+        const pipeline = new BABYLON.DefaultRenderingPipeline('pipeline', true, scene, [camera]);
         pipeline.bloomEnabled = true;
         pipeline.bloomThreshold = 0.15;
         pipeline.bloomWeight = 1.8;
@@ -204,7 +196,13 @@
         sunLight.diffuse = new BABYLON.Color3(0.8, 0.6, 1);
 
         // ---- ENVIRONMENT (Reflections) ----
-        const envTexture = scene.createDefaultEnvironment().texture;
+        let envTexture = null;
+        try {
+            const env = scene.createDefaultEnvironment({ createGround: false, createSkybox: false });
+            if (env && env.texture) envTexture = env.texture;
+        } catch (e) {
+            console.warn('Env texture skipped:', e);
+        }
 
         // ---- GROUND (reflective) ----
         const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 180, height: 180 }, scene);
