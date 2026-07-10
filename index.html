@@ -192,7 +192,6 @@
             pipeline.vignetteEnabled = true;
             pipeline.vignetteWeight = 1.0;
             pipeline.sharpeningEnabled = true;
-            pipeline.sharpening = 0.3;
         } catch (e) {
             console.warn('Pipeline skipped:', e);
         }
@@ -771,12 +770,12 @@
                     break;
                 case 'pause':
                     state.paused = true;
-                    scene.animationPlay = false;
+                    scene.animationsEnabled = false;
                     terminalLog('Paused.', 'dim');
                     break;
                 case 'resume':
                     state.paused = false;
-                    scene.animationPlay = true;
+                    scene.animationsEnabled = true;
                     terminalLog('Resumed.', 'ok');
                     break;
                 case 'spawn':
