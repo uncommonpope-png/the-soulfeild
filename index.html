@@ -77,6 +77,15 @@
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script>
     const B = window.BABYLON;
+    window.addEventListener('error', (event) => {
+        const out = document.getElementById('terminal-output');
+        if (out) {
+            const d = document.createElement('div');
+            d.className = 'term-line err';
+            d.innerHTML = '> ERROR: ' + event.message + ' @ line ' + event.lineno;
+            out.appendChild(d);
+        }
+    });
     const canvas = document.getElementById('renderCanvas');
     const engine = new B.Engine(canvas, true, { antialiasing: true });
     const scene = new B.Scene(engine);
