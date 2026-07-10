@@ -26,6 +26,7 @@
         .plt-love .value { color: #ff6b9d; }
         .plt-tax .value { color: #4ecdc4; }
         .plt-total .value { color: #e0e8ff; font-size: 16px; }
+        .plt-heaven .value { color: #fff0a8; text-shadow: 0 0 10px rgba(255, 222, 128, 0.8); }
         .hud-divider { border-top: 1px solid rgba(255,255,255,0.06); margin: 4px 0; }
 
         #terminal {
@@ -49,6 +50,42 @@
         #terminal-prompt { color: #8ab0d0; font-weight: bold; }
         #terminal-input { flex: 1; background: transparent; border: none; color: #e0f0f8; font: inherit; outline: none; padding: 4px 0; }
         #terminal-input::placeholder { color: #3a5a6a; font-style: italic; }
+        /* ---- WORLD PORTALS ---- */
+        #portal-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            display: none; pointer-events: none;
+        }
+        #portal-overlay.active { display: block; pointer-events: auto; }
+        #portal-bg {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(16px);
+        }
+        #portal-frame-wrap {
+            position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
+            border-radius: 16px; overflow: hidden;
+            background: #000; border: 1px solid rgba(255,170,102,0.3);
+        }
+        #portal-frame { width: 100%; height: 100%; border: none; }
+        #portal-close {
+            position: absolute; top: 16px; right: 16px; z-index: 210;
+            background: rgba(0,0,0,0.7); border: 1px solid #ff8844;
+            color: #ff8844; font-size: 24px; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; font-family: monospace;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; pointer-events: auto;
+        }
+        #portal-close:hover { background: #ff8844; color: #000; }
+        #portal-loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            color: #ff8844; font-family: monospace; font-size: 14px;
+            z-index: 205; pointer-events: none;
+        }
+        #portal-label {
+            position: absolute; top: 16px; left: 16px; z-index: 210;
+            color: #ffdd99; font-family: monospace; font-size: 12px;
+            opacity: 0.6; pointer-events: none;
+            background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 20px;
+        }
     </style>
 </head>
 <body>
@@ -61,6 +98,7 @@
         <div class="hud-row plt-tax"><span class="label">Tax</span><span class="value" id="hud-tax">0.50</span></div>
         <div class="hud-divider"></div>
         <div class="hud-row plt-total"><span class="label">PLT</span><span class="value" id="hud-total">0.50</span></div>
+        <div class="hud-row plt-heaven"><span class="label">Heaven</span><span class="value" id="hud-heaven">0.72</span></div>
     </div>
 
     <div id="terminal">
@@ -72,6 +110,17 @@
             <span id="terminal-prompt">></span>
             <input id="terminal-input" type="text" placeholder="command..." autofocus />
         </div>
+    </div>
+
+    <!-- WORLD PORTAL OVERLAY -->
+    <div id="portal-overlay">
+        <div id="portal-bg"></div>
+        <div id="portal-loading">Opening portal...</div>
+        <div id="portal-label">World Portal</div>
+        <div id="portal-frame-wrap">
+            <iframe id="portal-frame" allow="autoplay; fullscreen"></iframe>
+        </div>
+        <button id="portal-close">✕</button>
     </div>
 
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
@@ -102,6 +151,9 @@
     const hemi = new B.HemisphericLight('hemi', new B.Vector3(0, 1, 0), scene);
     hemi.intensity = 0.3;
     hemi.groundColor = new B.Color3(0.1, 0.05, 0.2);
+    
+    // Portal glow lights (one for each)
+    const portalLights = [];
     const dir = new B.DirectionalLight('dir', new B.Vector3(0.5, -1, 0.3), scene);
     dir.intensity = 0.8;
 
@@ -522,6 +574,140 @@
     makeDistrict(-78, 72, 'Garden Dome', [0.2, 1.0, 0.45], 'dome');
     makeDistrict(78, 72, 'Pink Matrix Quarter', [1.0, 0.08, 0.7], 'crystal');
 
+    // ---- WORLD PORTALS / MERGED DISTRICTS ----
+    const portalDefs = [
+        { cx: 40, cz: -45, name: 'Mystical Library', accent: [0.95, 0.55, 0.15], theme: 'library',
+          url: 'https://uncommonpope-png.github.io/cosmic-pyramid-library/',
+          desc: 'PLT books, floating souls, pyramid chamber, spiral galaxies' },
+        { cx: -42, cz: 40, name: 'Soulverse Ultimate', accent: [0.9, 0.3, 0.7], theme: 'game',
+          url: 'https://uncommonpope-png.github.io/plt-press/SOULVERSE-ULTIMATE-MERGED.html',
+          desc: 'Forge souls, arena combat, soul dex, society management' },
+        { cx: 45, cz: 40, name: 'Grand Tower', accent: [0.2, 0.7, 0.95], theme: 'game',
+          url: 'https://uncommonpope-png.github.io/grandtower/GRANDTOWER.html',
+          desc: 'RPG world: combat, quests, leveling, soul economy, RTS' },
+        { cx: -48, cz: -44, name: 'Soul Foundry', accent: [0.6, 0.2, 1.0], theme: 'forge',
+          url: 'https://uncommonpope-png.github.io/soul-foundry/',
+          desc: 'Forge souls, build universes, quote maker, naming chamber' },
+    ];
+    const portalScreens = [];
+    const portalLabelMeshes = [];
+
+    function makePortalDistrict(def) {
+        const [ar, ag, ab] = def.accent;
+        const plazaMat = new B.StandardMaterial(def.name + 'Plaza', scene);
+        plazaMat.diffuseColor = new B.Color3(ar * 0.1, ag * 0.1, ab * 0.1);
+        plazaMat.emissiveColor = new B.Color3(ar * 0.12, ag * 0.12, ab * 0.12);
+        const neon = new B.StandardMaterial(def.name + 'Neon', scene);
+        neon.diffuseColor = new B.Color3(0, 0, 0);
+        neon.emissiveColor = new B.Color3(ar, ag, ab);
+        const portalMat = new B.StandardMaterial(def.name + 'Portal', scene);
+        portalMat.diffuseColor = new B.Color3(0, 0, 0);
+        portalMat.emissiveColor = new B.Color3(ar * 0.6, ag * 0.6, ab * 0.6);
+        portalMat.alpha = 0.85;
+
+        const cx = def.cx, cz = def.cz;
+
+        // Plaza ground
+        const plaza = B.MeshBuilder.CreateCylinder(def.name + 'Plaza', { diameter: 22, height: 0.12, tessellation: 48 }, scene);
+        plaza.position = new B.Vector3(cx, 0.08, cz);
+        plaza.material = plazaMat;
+
+        // Gateway pillars
+        for (const sx of [-1, 1]) {
+            for (const sz of [-1, 1]) {
+                const pillar = B.MeshBuilder.CreateBox(def.name + 'Pillar', { width: 0.35, height: 5.5, depth: 0.35 }, scene);
+                pillar.position = new B.Vector3(cx + sx * 4.5, 2.75, cz + sz * 4.5);
+                pillar.material = neon;
+            }
+        }
+
+        // Portal screen — the main dimensional window
+        const screen = B.MeshBuilder.CreatePlane(def.name + 'Screen', { width: 7, height: 4.5 }, scene);
+        screen.position = new B.Vector3(cx, 2.5, cz);
+        screen.material = portalMat;
+        screen.actionManager = new B.ActionManager(scene);
+        screen.actionManager.registerAction(new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger, () => {
+            openPortal(def);
+        }));
+        portalScreens.push(screen);
+
+        // Portal frame
+        const frameMat = new B.StandardMaterial(def.name + 'Frame', scene);
+        frameMat.diffuseColor = new B.Color3(0, 0, 0);
+        frameMat.emissiveColor = new B.Color3(ar * 0.3, ag * 0.3, ab * 0.3);
+        const frame = B.MeshBuilder.CreateBox(def.name + 'FrameBox', { width: 7.4, height: 0.15, depth: 0.15 }, scene);
+        frame.position = new B.Vector3(cx, 0.08, cz);
+        frame.material = frameMat;
+
+        // Label with canvas texture
+        const labelCanvas = document.createElement('canvas');
+        labelCanvas.width = 512; labelCanvas.height = 72;
+        const lctx = labelCanvas.getContext('2d');
+        lctx.clearRect(0, 0, 512, 72);
+        const lgrad = lctx.createLinearGradient(0, 0, 512, 0);
+        lgrad.addColorStop(0, 'rgba(' + (ar*255|0) + ',' + (ag*255|0) + ',' + (ab*255|0) + ',0)');
+        lgrad.addColorStop(0.15, 'rgba(' + (ar*255|0) + ',' + (ag*255|0) + ',' + (ab*255|0) + ',0.6)');
+        lgrad.addColorStop(0.5, 'rgba(' + (ar*255|0) + ',' + (ag*255|0) + ',' + (ab*255|0) + ',0.9)');
+        lgrad.addColorStop(0.85, 'rgba(' + (ar*255|0) + ',' + (ag*255|0) + ',' + (ab*255|0) + ',0.6)');
+        lgrad.addColorStop(1, 'rgba(' + (ar*255|0) + ',' + (ag*255|0) + ',' + (ab*255|0) + ',0)');
+        lctx.fillStyle = lgrad;
+        lctx.fillRect(0, 0, 512, 72);
+        lctx.fillStyle = '#fff';
+        lctx.font = 'bold 28px "Courier New", monospace';
+        lctx.textAlign = 'center';
+        lctx.textBaseline = 'middle';
+        lctx.fillText(def.name, 256, 38);
+        const labelTex = new B.Texture('data:' + labelCanvas.toDataURL(), scene);
+        const labelMat = new B.StandardMaterial(def.name + 'LabelMat', scene);
+        labelMat.diffuseColor = new B.Color3(0, 0, 0);
+        labelMat.emissiveColor = new B.Color3(ar * 0.8, ag * 0.8, ab * 0.8);
+        labelMat.diffuseTexture = labelTex;
+        labelMat.alpha = 0.8;
+        const label = B.MeshBuilder.CreatePlane(def.name + 'Label', { width: 3.6, height: 0.5 }, scene);
+        label.position = new B.Vector3(cx, 4.8, cz);
+        label.material = labelMat;
+        portalLabelMeshes.push({ mesh: label, baseY: 4.8, def });
+
+        // Small district buildings around portal
+        for (let i = 0; i < 8; i++) {
+            const a = (Math.PI * 2 * i) / 8 + 0.2;
+            const r = 8 + Math.random() * 3;
+            const bx = cx + Math.cos(a) * r;
+            const bz = cz + Math.sin(a) * r;
+            const h = 2.5 + Math.random() * 5;
+            const build = B.MeshBuilder.CreateBox(def.name + 'Build' + i, { width: 1.6 + Math.random(), height: h, depth: 1.6 + Math.random() }, scene);
+            build.position = new B.Vector3(bx, h / 2, bz);
+            const bm = new B.StandardMaterial(def.name + 'BM' + i, scene);
+            const bc = [ar * 0.12 + Math.random() * 0.05, ag * 0.12 + Math.random() * 0.05, ab * 0.12 + Math.random() * 0.05];
+            bm.diffuseColor = new B.Color3(bc[0], bc[1], bc[2]);
+            bm.emissiveColor = new B.Color3(bc[0] * 0.5, bc[1] * 0.5, bc[2] * 0.5);
+            build.material = bm;
+        }
+
+        // Road connection from center
+        const roadDir = new B.Vector3(cx, 0, cz).normalize();
+        for (let s = 0; s < 10; s++) {
+            const seg = B.MeshBuilder.CreateBox(def.name + 'Road' + s, { width: 2.4, height: 0.03, depth: 0.3 }, scene);
+            const t = 5 + s * 3.2;
+            seg.position = new B.Vector3(roadDir.x * t, 0.04, roadDir.z * t);
+            const rm = new B.StandardMaterial(def.name + 'RM' + s, scene);
+            rm.diffuseColor = new B.Color3(0.01, 0.01, 0.02);
+            rm.emissiveColor = new B.Color3(ar * 0.02, ag * 0.02, ab * 0.02);
+            seg.material = rm;
+        }
+
+        makeInteractive(screen, def.name, def.desc);
+
+        // Portal glow light
+        const glowLight = new B.PointLight(def.name + 'Glow', new B.Vector3(cx, 3, cz), scene);
+        glowLight.intensity = 0.8;
+        glowLight.range = 25;
+        glowLight.diffuse = new B.Color3(ar, ag, ab);
+        portalLights.push({ light: glowLight, phase: Math.random() * Math.PI * 2 });
+    }
+
+    portalDefs.forEach(makePortalDistrict);
+
     // ---- CENTRAL LANDMARK: SOUL TOWER ----
     const towerBodyMat = new B.StandardMaterial('soulTowerBodyMat', scene);
     towerBodyMat.diffuseColor = new B.Color3(0.025, 0.035, 0.09);
@@ -566,6 +752,196 @@
         ring.rotation.x = Math.PI / 2;
         ring.material = towerNeonMat;
     }
+
+    // ---- HEAVEN LAYER ----
+    const heavenFloaters = [];
+    const heavenRings = [];
+    const seraphs = [];
+
+    const heavenGoldMat = new B.StandardMaterial('heavenGoldMat', scene);
+    heavenGoldMat.diffuseColor = new B.Color3(0.32, 0.22, 0.06);
+    heavenGoldMat.emissiveColor = new B.Color3(0.55, 0.36, 0.08);
+    heavenGoldMat.specularColor = new B.Color3(0.9, 0.75, 0.35);
+
+    const heavenWhiteMat = new B.StandardMaterial('heavenWhiteMat', scene);
+    heavenWhiteMat.diffuseColor = new B.Color3(0.78, 0.78, 0.68);
+    heavenWhiteMat.emissiveColor = new B.Color3(0.24, 0.22, 0.16);
+    heavenWhiteMat.specularColor = new B.Color3(0.85, 0.85, 0.7);
+
+    const heavenCyanMat = new B.StandardMaterial('heavenCyanMat', scene);
+    heavenCyanMat.diffuseColor = new B.Color3(0.02, 0.12, 0.16);
+    heavenCyanMat.emissiveColor = new B.Color3(0.08, 0.62, 0.95);
+    heavenCyanMat.specularColor = new B.Color3(0.4, 0.8, 1.0);
+
+    const heavenRoseMat = new B.StandardMaterial('heavenRoseMat', scene);
+    heavenRoseMat.diffuseColor = new B.Color3(0.18, 0.04, 0.12);
+    heavenRoseMat.emissiveColor = new B.Color3(0.95, 0.16, 0.62);
+    heavenRoseMat.specularColor = new B.Color3(0.9, 0.45, 0.7);
+
+    const heavenCloudMat = new B.StandardMaterial('heavenCloudMat', scene);
+    heavenCloudMat.disableLighting = true;
+    heavenCloudMat.diffuseColor = new B.Color3(0, 0, 0);
+    heavenCloudMat.emissiveColor = new B.Color3(0.9, 0.82, 0.65);
+    heavenCloudMat.alpha = 0.36;
+
+    const heavenRayMat = new B.StandardMaterial('heavenRayMat', scene);
+    heavenRayMat.disableLighting = true;
+    heavenRayMat.diffuseColor = new B.Color3(0, 0, 0);
+    heavenRayMat.emissiveColor = new B.Color3(1.0, 0.82, 0.34);
+    heavenRayMat.alpha = 0.42;
+
+    const wingMat = new B.StandardMaterial('heavenWingMat', scene);
+    wingMat.diffuseColor = new B.Color3(0.7, 0.75, 0.85);
+    wingMat.emissiveColor = new B.Color3(0.18, 0.26, 0.42);
+
+    const heavenKeyLight = new B.PointLight('heavenKeyLight', new B.Vector3(0, 58, -18), scene);
+    heavenKeyLight.intensity = 1.3;
+    heavenKeyLight.range = 160;
+    heavenKeyLight.diffuse = new B.Color3(1.0, 0.82, 0.42);
+
+    const heavenLoveLight = new B.PointLight('heavenLoveLight', new B.Vector3(34, 48, 28), scene);
+    heavenLoveLight.intensity = 0.75;
+    heavenLoveLight.range = 95;
+    heavenLoveLight.diffuse = new B.Color3(1.0, 0.22, 0.62);
+
+    function trackHeaven(node, floatAmount, speed, spin) {
+        heavenFloaters.push({ node, baseY: node.position.y, floatAmount, speed, spin, phase: Math.random() * Math.PI * 2 });
+        return node;
+    }
+
+    function makeHeavenCloud(name, x, y, z, scale) {
+        const root = new B.TransformNode(name);
+        root.position = new B.Vector3(x, y, z);
+        const offsets = [[0, 0, 0], [-1.5, -0.1, 0.25], [1.5, -0.05, -0.2], [-0.4, 0.35, -0.8], [0.75, 0.28, 0.75]];
+        offsets.forEach((o, i) => {
+            const lobe = B.MeshBuilder.CreateSphere(name + 'Lobe' + i, { diameter: scale * (2.2 + i * 0.16), segments: 10 }, scene);
+            lobe.position = new B.Vector3(o[0] * scale, o[1] * scale, o[2] * scale);
+            lobe.scaling.y = 0.35;
+            lobe.parent = root;
+            lobe.material = heavenCloudMat;
+            lobe.applyFog = false;
+            if (i === 0) makeInteractive(lobe, name, 'living cloud foundation holding the upper city');
+        });
+        return trackHeaven(root, 0.45 * scale, 0.22 + Math.random() * 0.12, 0.006);
+    }
+
+    function makeHeavenTemple(name, x, z, mat, detail) {
+        const root = new B.TransformNode(name);
+        root.position = new B.Vector3(x, 43, z);
+        const platform = B.MeshBuilder.CreateCylinder(name + 'Platform', { diameter: 11, height: 0.45, tessellation: 48 }, scene);
+        platform.parent = root;
+        platform.material = mat;
+        makeInteractive(platform, name, detail);
+        for (let i = 0; i < 8; i++) {
+            const a = (Math.PI * 2 * i) / 8;
+            const column = B.MeshBuilder.CreateCylinder(name + 'Column' + i, { height: 4.7, diameter: 0.28, tessellation: 10 }, scene);
+            column.position = new B.Vector3(Math.cos(a) * 4.1, 2.45, Math.sin(a) * 4.1);
+            column.parent = root;
+            column.material = heavenWhiteMat;
+        }
+        const roof = B.MeshBuilder.CreateCylinder(name + 'Crown', { diameterTop: 2.4, diameterBottom: 8.2, height: 2.5, tessellation: 8 }, scene);
+        roof.position.y = 5.35;
+        roof.rotation.y = Math.PI / 8;
+        roof.parent = root;
+        roof.material = mat;
+        const orb = B.MeshBuilder.CreateSphere(name + 'Orb', { diameter: 1.2, segments: 14 }, scene);
+        orb.position.y = 7.25;
+        orb.parent = root;
+        orb.material = heavenGoldMat;
+        makeInteractive(orb, name + ' Oracle', 'click to receive a blessing', () => {
+            PLT.love = Math.min(1, PLT.love + 0.03);
+            PLT.tax = Math.max(0, PLT.tax - 0.02);
+            HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.04);
+            updateHUD();
+        });
+        return trackHeaven(root, 0.38, 0.34 + Math.random() * 0.12, 0.018);
+    }
+
+    function makeSeraph(name, x, y, z) {
+        const root = new B.TransformNode(name);
+        root.position = new B.Vector3(x, y, z);
+        const body = B.MeshBuilder.CreateSphere(name + 'Body', { diameter: 0.85, segments: 12 }, scene);
+        body.scaling.y = 1.35;
+        body.parent = root;
+        body.material = heavenWhiteMat;
+        const face = B.MeshBuilder.CreateSphere(name + 'Face', { diameter: 0.38, segments: 10 }, scene);
+        face.position = new B.Vector3(0, 0.85, -0.08);
+        face.parent = root;
+        face.material = heavenGoldMat;
+        for (const sx of [-1, 1]) {
+            const wing = B.MeshBuilder.CreateBox(name + 'Wing' + sx, { width: 1.9, height: 0.08, depth: 0.82 }, scene);
+            wing.position = new B.Vector3(sx * 1.05, 0.25, 0.18);
+            wing.rotation.z = sx * 0.42;
+            wing.rotation.y = sx * -0.28;
+            wing.parent = root;
+            wing.material = wingMat;
+        }
+        const halo = B.MeshBuilder.CreateTorus(name + 'Halo', { diameter: 1.0, thickness: 0.045, tessellation: 36 }, scene);
+        halo.position.y = 1.38;
+        halo.rotation.x = Math.PI / 2;
+        halo.parent = root;
+        halo.material = heavenGoldMat;
+        heavenRings.push({ mesh: halo, spin: 0.8 });
+        makeInteractive(halo, name, 'seraph guardian listening for commands from Morpheus', () => {
+            HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.02);
+            PLT.profit = Math.min(1, PLT.profit + 0.015);
+            updateHUD();
+        });
+        seraphs.push({ node: root, base: root.position.clone(), phase: Math.random() * Math.PI * 2, orbit: 1.6 + Math.random() * 1.4, speed: 0.25 + Math.random() * 0.18 });
+        return root;
+    }
+
+    const heavenGate = new B.TransformNode('heavenGate');
+    heavenGate.position = new B.Vector3(0, 31.5, -2);
+    for (let i = 0; i < 4; i++) {
+        const gateRing = B.MeshBuilder.CreateTorus('heavenGateRing' + i, { diameter: 9.5 + i * 1.2, thickness: 0.08, tessellation: 72 }, scene);
+        gateRing.position = new B.Vector3(0, i * 0.15, -i * 0.18);
+        gateRing.scaling.y = 1.25;
+        gateRing.parent = heavenGate;
+        gateRing.material = i % 2 ? heavenCyanMat : heavenGoldMat;
+        heavenRings.push({ mesh: gateRing, spin: 0.12 + i * 0.04 });
+    }
+    makeInteractive(soulBeacon, 'Soul Tower Beacon', 'the elevator key to Heaven', () => {
+        HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.08);
+        PLT.love = Math.min(1, PLT.love + 0.04);
+        updateHUD();
+    });
+
+    for (let i = 0; i < 18; i++) {
+        const stair = B.MeshBuilder.CreateBox('heavenStair' + i, { width: 7.6 - i * 0.18, height: 0.12, depth: 0.95 }, scene);
+        stair.position = new B.Vector3(0, 26.5 + i * 1.05, -1.4 - i * 2.0);
+        stair.material = i % 2 ? heavenCyanMat : heavenGoldMat;
+        if (i === 8) makeInteractive(stair, 'Stairway of Seshat', 'a climbable thought bridge from city to sky');
+    }
+
+    for (let i = 0; i < 7; i++) {
+        const angle = (Math.PI * 2 * i) / 7;
+        const ray = B.MeshBuilder.CreateCylinder('heavenRay' + i, { height: 44, diameterTop: 0.02, diameterBottom: 0.16, tessellation: 8 }, scene);
+        ray.position = new B.Vector3(Math.cos(angle) * 5.5, 24, Math.sin(angle) * 5.5 - 1.5);
+        ray.material = heavenRayMat;
+        ray.applyFog = false;
+    }
+
+    makeHeavenCloud('Cloud Choir North', 0, 42, -34, 3.2);
+    makeHeavenCloud('Cloud Choir West', -30, 39, -10, 2.9);
+    makeHeavenCloud('Cloud Choir East', 30, 39, -10, 2.9);
+    makeHeavenCloud('Cloud Choir Garden', 0, 37, 28, 3.4);
+    makeHeavenTemple('Temple of Profit', -26, -32, heavenGoldMat, 'golden leverage engine above the city');
+    makeHeavenTemple('Temple of Love', 26, -32, heavenRoseMat, 'rose sanctuary feeding the PLT heart');
+    makeHeavenTemple('Temple of Tax', 0, 26, heavenCyanMat, 'blue balance court that burns waste into wisdom');
+
+    makeSeraph('Seraph Prima', -16, 48, -20);
+    makeSeraph('Seraph Secunda', 16, 48, -20);
+    makeSeraph('Seraph Tertia', 0, 45, 18);
+
+    const heavenAxis = B.MeshBuilder.CreateCylinder('heavenAxis', { height: 31, diameter: 0.11, tessellation: 12 }, scene);
+    heavenAxis.position = new B.Vector3(0, 41, -2);
+    heavenAxis.material = heavenGoldMat;
+    const heavenCrown = B.MeshBuilder.CreateTorus('heavenCrown', { diameter: 18, thickness: 0.08, tessellation: 96 }, scene);
+    heavenCrown.position = new B.Vector3(0, 56.5, -2);
+    heavenCrown.rotation.x = Math.PI / 2;
+    heavenCrown.material = heavenGoldMat;
+    heavenRings.push({ mesh: heavenCrown, spin: 0.08 });
 
     // ---- PYRAMID DISTRICTS ----
     const pyramidMat = new B.StandardMaterial('pyramidMat', scene);
@@ -772,8 +1148,40 @@
     // ---- PLT ----
     const PLT = { profit: 0.55, love: 0.45, tax: 0.50 };
     Object.defineProperty(PLT, 'total', { get() { return Math.min(1, Math.max(0, this.profit + this.love - this.tax)); } });
+    const HEAVEN = { resonance: 0.72 };
 
     // ---- TERMINAL ----
+    // ---- WORLD PORTAL SYSTEM ----
+    const portalOverlay = document.getElementById('portal-overlay');
+    const portalFrame = document.getElementById('portal-frame');
+    const portalClose = document.getElementById('portal-close');
+    const portalLoading = document.getElementById('portal-loading');
+    const portalLabel = document.getElementById('portal-label');
+    let portalOpen = false;
+
+    function openPortal(def) {
+        portalOpen = true;
+        portalLabel.textContent = def.name + ' Portal';
+        portalLoading.style.display = 'block';
+        portalFrame.src = '';
+        portalOverlay.classList.add('active');
+        setTimeout(() => {
+            portalFrame.src = def.url;
+            portalFrame.onload = () => { portalLoading.style.display = 'none'; };
+        }, 300);
+        terminalLog('Opened portal to <span class="hl">' + def.name + '</span>', 'ok');
+    }
+
+    function closePortal() {
+        portalOpen = false;
+        portalOverlay.classList.remove('active');
+        portalFrame.src = '';
+        terminalLog('Returned from portal.', 'dim');
+    }
+    portalClose.addEventListener('click', closePortal);
+    portalOverlay.addEventListener('click', (e) => { if (e.target === portalOverlay || e.target.id === 'portal-bg') closePortal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && portalOpen) closePortal(); });
+
     const termOut = document.getElementById('terminal-output');
     const termIn = document.getElementById('terminal-input');
 
@@ -790,19 +1198,52 @@
         document.getElementById('hud-love').textContent = PLT.love.toFixed(2);
         document.getElementById('hud-tax').textContent = PLT.tax.toFixed(2);
         document.getElementById('hud-total').textContent = PLT.total.toFixed(2);
+        document.getElementById('hud-heaven').textContent = HEAVEN.resonance.toFixed(2);
     }
     updateHUD();
 
     const cmds = {
-        help() { terminalLog('Commands: <span class="hl">plt</span>, <span class="hl">time</span> [speed], <span class="hl">pause</span>, <span class="hl">resume</span>, <span class="hl">spawn</span>, <span class="hl">build</span> [type], <span class="hl">exit</span>'); },
+        help() { terminalLog('Commands: <span class="hl">plt</span>, <span class="hl">heaven</span>, <span class="hl">ascend</span>, <span class="hl">bless</span>, <span class="hl">seraph</span>, <span class="hl">portals</span>, <span class="hl">gossip</span>, <span class="hl">time</span> [speed], <span class="hl">pause</span>, <span class="hl">resume</span>, <span class="hl">spawn</span>, <span class="hl">build</span> [type], <span class="hl">exit</span>'); },
         plt() { terminalLog('Profit: ' + PLT.profit.toFixed(2) + '  Love: ' + PLT.love.toFixed(2) + '  Tax: ' + PLT.tax.toFixed(2) + '  <span class="hl">Total: ' + PLT.total.toFixed(2) + '</span>'); },
+        heaven() { terminalLog('Heaven resonance: <span class="hl">' + HEAVEN.resonance.toFixed(2) + '</span>. Click Soul Tower Beacon or type <span class="hl">ascend</span>.', 'ok'); },
+        ascend() {
+            camera.setTarget(new B.Vector3(0, 42, -6));
+            camera.radius = 104;
+            camera.alpha = -Math.PI / 2.35;
+            camera.beta = Math.PI / 3.45;
+            HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.06);
+            PLT.love = Math.min(1, PLT.love + 0.02);
+            updateHUD();
+            terminalLog('Ascension camera locked on the Heaven layer.', 'ok');
+        },
+        bless() {
+            PLT.profit = Math.min(1, PLT.profit + 0.04);
+            PLT.love = Math.min(1, PLT.love + 0.06);
+            PLT.tax = Math.max(0, PLT.tax - 0.05);
+            HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.08);
+            updateHUD();
+            terminalLog('Blessing applied: Profit and Love rise, Tax burns down.', 'ok');
+        },
+        seraph() {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 12 + Math.random() * 18;
+            makeSeraph('Seraph ' + (seraphs.length + 1), Math.cos(angle) * radius, 44 + Math.random() * 8, Math.sin(angle) * radius - 12);
+            HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.03);
+            updateHUD();
+            terminalLog('A new seraph entered the Soulfeild.', 'ok');
+        },
         time(args) {
             if (args[1]) { timeScale = parseFloat(args[1]) || 1; terminalLog('Time: ' + timeScale + 'x', 'ok'); }
             else terminalLog('Time scale: ' + timeScale + 'x');
         },
         pause() { paused = true; terminalLog('Paused.', 'dim'); },
         resume() { paused = false; terminalLog('Resumed.', 'ok'); },
-        spawn() {
+            portals() {
+                terminalLog('World Portals: <span class="hl">' + portalDefs.map(d => d.name).join('</span>, <span class="hl">') + '</span>');
+                terminalLog('Click a portal screen in a district to enter that world.', 'dim');
+            },
+            gossip() { terminalLog('The worlds are merging. Each portal is a Soulverse.', 'dim'); },
+            spawn() {
             const n = citizenNames[Math.floor(Math.random() * citizenNames.length)] + (citizens.length + 1);
             const c = B.MeshBuilder.CreateSphere('cit' + citizens.length, { diameter: 0.4, segments: 6 }, scene);
             const a = Math.random() * Math.PI * 2;
@@ -845,12 +1286,14 @@
     // ---- STATE ----
     let paused = false;
     let timeScale = 1;
+    let heavenTime = 0;
 
     // ---- RENDER LOOP ----
     scene.registerBeforeRender(() => {
         const dt = engine.getDeltaTime() / 1000;
         if (!paused) {
             const d = dt * timeScale;
+            heavenTime += d;
 
             // Orbit planets
             for (const p of planets) {
@@ -861,6 +1304,32 @@
             horizonRing.rotation.z += d * 0.015;
             for (const sp of skyPlanets) {
                 sp.mesh.rotation.y += d * sp.spin;
+            }
+
+            heavenGate.rotation.y = Math.sin(heavenTime * 0.28) * 0.08;
+            heavenAxis.rotation.y += d * 0.16;
+            heavenKeyLight.intensity = 1.0 + HEAVEN.resonance * 0.8 + Math.sin(heavenTime * 1.4) * 0.08;
+            heavenLoveLight.intensity = 0.45 + PLT.love * 0.7;
+            towerNeonMat.emissiveColor = new B.Color3(0.48 + HEAVEN.resonance * 0.3, 0.22 + PLT.love * 0.22, 0.95);
+            for (const h of heavenFloaters) {
+                h.node.position.y = h.baseY + Math.sin(heavenTime * h.speed + h.phase) * h.floatAmount;
+                h.node.rotation.y += d * h.spin;
+            }
+            for (const ring of heavenRings) {
+                ring.mesh.rotation.z += d * ring.spin;
+            }
+            for (const pl of portalLights) {
+                pl.light.intensity = 0.5 + Math.sin(heavenTime * 1.2 + pl.phase) * 0.4;
+            }
+            for (const plm of portalLabelMeshes) {
+                plm.mesh.position.y = plm.baseY + Math.sin(heavenTime * 0.7 + plm.def.cx) * 0.15;
+            }
+            for (const s of seraphs) {
+                const t = heavenTime * s.speed + s.phase;
+                s.node.position.x = s.base.x + Math.cos(t) * s.orbit;
+                s.node.position.y = s.base.y + Math.sin(t * 1.7) * 0.6;
+                s.node.position.z = s.base.z + Math.sin(t) * s.orbit;
+                s.node.rotation.y = -t + Math.PI / 2;
             }
 
             for (const ship of ships) {
@@ -994,6 +1463,8 @@
 
     terminalLog('The Soulfeild loaded.');
     terminalLog('Drag to orbit. Scroll to zoom. Click buildings.');
+    terminalLog('Heaven layer online. Type <span class="hl">ascend</span> or <span class="hl">bless</span>.', 'ok');
+    terminalLog('4 world portals active. Type <span class="hl">portals</span> to list them.', 'ok');
     terminalLog('Type <span class="hl">help</span> for commands.');
     console.log('Soulfeild ready.');
     </script>
