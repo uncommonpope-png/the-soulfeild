@@ -265,6 +265,33 @@
     ringMat.alpha = 0.65;
     horizonRing.material = ringMat;
 
+    function makeInteractive(mesh, label, detail, onPick) {
+        if (!mesh) return;
+        mesh.actionManager = new B.ActionManager(scene);
+        mesh.actionManager.registerAction(new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger, () => {
+            terminalLog('<span class="hl">' + label + '</span> — ' + detail, 'ok');
+            if (onPick) onPick(mesh);
+        }));
+    }
+
+    function makePlanetMovable(mesh, label, followers) {
+        makeInteractive(mesh, label, 'drag this planet to move it through the sky');
+        if (!B.PointerDragBehavior) return;
+        try {
+            const drag = new B.PointerDragBehavior({ dragPlaneNormal: new B.Vector3(0, 1, 0) });
+            drag.useObjectOrientationForDragging = false;
+            drag.onDragStartObservable.add(() => terminalLog('Moving <span class="hl">' + label + '</span>', 'dim'));
+            drag.onDragObservable.add(() => {
+                if (followers) followers.forEach(f => f.position = mesh.position.clone());
+            });
+            mesh.addBehavior(drag);
+        } catch (e) {
+            terminalLog('Planet drag unavailable: ' + e.message, 'err');
+        }
+    }
+
+    makePlanetMovable(horizonPlanet, 'Horizon Ringworld', [horizonRing]);
+
     // More sky planets: different colors, sizes, rings, and positions make the sky feel like its own city.
     const skyPlanetDefs = [
         { pos: [-110, 82, -115], size: 18, color: [0.7, 0.12, 0.35], ring: true },
@@ -281,14 +308,16 @@
         sm.emissiveColor = new B.Color3(def.color[0] * 0.12, def.color[1] * 0.12, def.color[2] * 0.12);
         sm.specularColor = new B.Color3(0.1, 0.1, 0.15);
         sp.material = sm;
+        let sr = null;
         if (def.ring) {
-            const sr = B.MeshBuilder.CreateTorus('skyPlanetRing' + i, { diameter: def.size * 1.45, thickness: 0.18, tessellation: 64 }, scene);
+            sr = B.MeshBuilder.CreateTorus('skyPlanetRing' + i, { diameter: def.size * 1.45, thickness: 0.18, tessellation: 64 }, scene);
             sr.position = sp.position.clone();
             sr.rotation.x = 1.15;
             sr.rotation.z = i * 0.4;
             sr.material = ringMat;
         }
-        skyPlanets.push({ mesh: sp, spin: 0.03 + i * 0.015 });
+        makePlanetMovable(sp, 'Sky Planet ' + (i + 1), sr ? [sr] : []);
+        skyPlanets.push({ mesh: sp, ring: sr, spin: 0.03 + i * 0.015 });
     });
 
     // Flying ships, built from primitive geometry so they are safe and movable.
@@ -304,6 +333,7 @@
         const body = B.MeshBuilder.CreateBox('shipBody', { width: 1.4, height: 0.28, depth: 0.55 }, scene);
         body.parent = ship;
         body.material = shipMat;
+        makeInteractive(body, 'Skyship ' + (i + 1), 'cargo vessel crossing between planets');
         const wingL = B.MeshBuilder.CreateBox('shipWingL', { width: 0.75, height: 0.08, depth: 0.18 }, scene);
         wingL.position = new B.Vector3(-0.55, -0.04, 0.34);
         wingL.rotation.z = -0.25;
@@ -436,6 +466,62 @@
         }
     }
 
+    // ---- SATELLITE TOWNS / DISTRICTS ----
+    function makeDistrict(cx, cz, name, accent, shapeBias) {
+        const plazaMat = new B.StandardMaterial(name + 'PlazaMat', scene);
+        plazaMat.diffuseColor = new B.Color3(accent[0] * 0.12, accent[1] * 0.12, accent[2] * 0.12);
+        plazaMat.emissiveColor = new B.Color3(accent[0] * 0.08, accent[1] * 0.08, accent[2] * 0.08);
+        const neon = new B.StandardMaterial(name + 'NeonMat', scene);
+        neon.diffuseColor = new B.Color3(0, 0, 0);
+        neon.emissiveColor = new B.Color3(accent[0], accent[1], accent[2]);
+
+        const plaza = B.MeshBuilder.CreateCylinder(name + 'Plaza', { diameter: 20, height: 0.12, tessellation: 48 }, scene);
+        plaza.position = new B.Vector3(cx, 0.08, cz);
+        plaza.material = plazaMat;
+        makeInteractive(plaza, name, 'satellite town plaza');
+
+        const archA = B.MeshBuilder.CreateBox(name + 'GateA', { width: 0.4, height: 5, depth: 0.4 }, scene);
+        archA.position = new B.Vector3(cx - 5, 2.5, cz - 6);
+        archA.material = neon;
+        const archB = B.MeshBuilder.CreateBox(name + 'GateB', { width: 0.4, height: 5, depth: 0.4 }, scene);
+        archB.position = new B.Vector3(cx + 5, 2.5, cz - 6);
+        archB.material = neon;
+        const archTop = B.MeshBuilder.CreateBox(name + 'GateTop', { width: 10.4, height: 0.35, depth: 0.4 }, scene);
+        archTop.position = new B.Vector3(cx, 5, cz - 6);
+        archTop.material = neon;
+
+        for (let i = 0; i < 12; i++) {
+            const ang = (Math.PI * 2 * i) / 12;
+            const r = 9 + Math.random() * 9;
+            const x = cx + Math.cos(ang) * r;
+            const z = cz + Math.sin(ang) * r;
+            const h = 3 + Math.random() * 8;
+            let mesh;
+            if (shapeBias === 'crystal') {
+                mesh = B.MeshBuilder.CreateCylinder(name + 'Crystal', { diameterTop: 0.8, diameterBottom: 2.5, height: h, tessellation: 6 }, scene);
+            } else if (shapeBias === 'dome') {
+                mesh = B.MeshBuilder.CreateSphere(name + 'Dome', { diameter: 3.2, segments: 12 }, scene);
+                mesh.scaling.y = 0.75 + Math.random() * 0.6;
+            } else {
+                mesh = B.MeshBuilder.CreateBox(name + 'Block', { width: 2 + Math.random(), height: h, depth: 2 + Math.random() }, scene);
+            }
+            mesh.position = new B.Vector3(x, h / 2, z);
+            const mat = new B.StandardMaterial(name + 'Mat' + i, scene);
+            mat.diffuseColor = new B.Color3(accent[0] * 0.16, accent[1] * 0.16, accent[2] * 0.16);
+            mat.emissiveColor = new B.Color3(accent[0] * 0.08, accent[1] * 0.08, accent[2] * 0.08);
+            mesh.material = mat;
+            const cap = B.MeshBuilder.CreateSphere(name + 'Cap' + i, { diameter: 0.45, segments: 8 }, scene);
+            cap.position = new B.Vector3(x, h + 0.25, z);
+            cap.material = neon;
+            makeInteractive(mesh, name + ' structure', shapeBias + ' district building');
+        }
+    }
+
+    makeDistrict(-78, -72, 'Rust Colony', [1.0, 0.35, 0.12], 'block');
+    makeDistrict(78, -72, 'Crystal Bazaar', [0.1, 0.8, 1.0], 'crystal');
+    makeDistrict(-78, 72, 'Garden Dome', [0.2, 1.0, 0.45], 'dome');
+    makeDistrict(78, 72, 'Pink Matrix Quarter', [1.0, 0.08, 0.7], 'crystal');
+
     // ---- CENTRAL LANDMARK: SOUL TOWER ----
     const towerBodyMat = new B.StandardMaterial('soulTowerBodyMat', scene);
     towerBodyMat.diffuseColor = new B.Color3(0.025, 0.035, 0.09);
@@ -539,6 +625,7 @@
         const body = B.MeshBuilder.CreateBox('carBody', { width: 1.4, height: 0.35, depth: 0.75 }, scene);
         body.parent = car;
         body.material = carMats[i % carMats.length];
+        makeInteractive(body, 'Neon Car ' + (i + 1), 'autonomous street vehicle');
         const cabin = B.MeshBuilder.CreateBox('carCabin', { width: 0.7, height: 0.28, depth: 0.55 }, scene);
         cabin.position.y = 0.33;
         cabin.parent = car;
@@ -579,7 +666,75 @@
         const a = Math.random() * Math.PI * 2;
         const r = 6 + Math.random() * 40;
         alien.position = new B.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
+        makeInteractive(head, 'Alien Citizen ' + (i + 1), 'street-level resident with glowing eyes');
         aliens.push({ node: alien, target: null, timer: 0, next: 1 + Math.random() * 3, speed: 1.2 + Math.random() * 1.8 });
+    }
+
+    // ---- HUMANS AND ROBOTS ----
+    const humans = [];
+    const robots = [];
+    const humanBodyMats = [new B.StandardMaterial('humanBlue', scene), new B.StandardMaterial('humanRose', scene), new B.StandardMaterial('humanGold', scene)];
+    humanBodyMats[0].diffuseColor = new B.Color3(0.08, 0.18, 0.4);
+    humanBodyMats[1].diffuseColor = new B.Color3(0.35, 0.08, 0.18);
+    humanBodyMats[2].diffuseColor = new B.Color3(0.35, 0.22, 0.06);
+    humanBodyMats.forEach(m => m.emissiveColor = new B.Color3(m.diffuseColor.r * 0.12, m.diffuseColor.g * 0.12, m.diffuseColor.b * 0.12));
+    const skinMat = new B.StandardMaterial('skinMat', scene);
+    skinMat.diffuseColor = new B.Color3(0.55, 0.35, 0.25);
+    skinMat.emissiveColor = new B.Color3(0.05, 0.025, 0.015);
+
+    for (let i = 0; i < 20; i++) {
+        const person = new B.TransformNode('person' + i);
+        const body = B.MeshBuilder.CreateCylinder('personBody', { height: 0.72, diameterTop: 0.26, diameterBottom: 0.32, tessellation: 8 }, scene);
+        body.position.y = 0.52;
+        body.parent = person;
+        body.material = humanBodyMats[i % humanBodyMats.length];
+        const head = B.MeshBuilder.CreateSphere('personHead', { diameter: 0.28, segments: 8 }, scene);
+        head.position.y = 1.02;
+        head.parent = person;
+        head.material = skinMat;
+        for (const sx of [-1, 1]) {
+            const arm = B.MeshBuilder.CreateBox('personArm', { width: 0.07, height: 0.42, depth: 0.07 }, scene);
+            arm.position = new B.Vector3(sx * 0.22, 0.56, 0);
+            arm.rotation.z = sx * 0.25;
+            arm.parent = person;
+            arm.material = humanBodyMats[i % humanBodyMats.length];
+        }
+        const a = Math.random() * Math.PI * 2;
+        const r = 8 + Math.random() * 44;
+        person.position = new B.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
+        makeInteractive(head, 'Human Explorer ' + (i + 1), 'visitor navigating the Soulfeild streets');
+        humans.push({ node: person, target: null, timer: 0, next: 2 + Math.random() * 4, speed: 1 + Math.random() * 1.4 });
+    }
+
+    const robotMat = new B.StandardMaterial('robotMat', scene);
+    robotMat.diffuseColor = new B.Color3(0.12, 0.13, 0.16);
+    robotMat.emissiveColor = new B.Color3(0.02, 0.04, 0.06);
+    const robotEyeMat = new B.StandardMaterial('robotEyeMat', scene);
+    robotEyeMat.diffuseColor = new B.Color3(0, 0, 0);
+    robotEyeMat.emissiveColor = new B.Color3(0.1, 0.9, 1.0);
+    for (let i = 0; i < 16; i++) {
+        const robot = new B.TransformNode('robot' + i);
+        const torso = B.MeshBuilder.CreateBox('robotTorso', { width: 0.55, height: 0.7, depth: 0.35 }, scene);
+        torso.position.y = 0.55;
+        torso.parent = robot;
+        torso.material = robotMat;
+        const head = B.MeshBuilder.CreateBox('robotHead', { width: 0.42, height: 0.32, depth: 0.32 }, scene);
+        head.position.y = 1.08;
+        head.parent = robot;
+        head.material = robotMat;
+        const visor = B.MeshBuilder.CreateBox('robotVisor', { width: 0.32, height: 0.08, depth: 0.04 }, scene);
+        visor.position = new B.Vector3(0, 1.09, -0.18);
+        visor.parent = robot;
+        visor.material = robotEyeMat;
+        const antenna = B.MeshBuilder.CreateCylinder('robotAntenna', { height: 0.35, diameter: 0.035 }, scene);
+        antenna.position.y = 1.42;
+        antenna.parent = robot;
+        antenna.material = robotEyeMat;
+        const a = Math.random() * Math.PI * 2;
+        const r = 8 + Math.random() * 44;
+        robot.position = new B.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
+        makeInteractive(head, 'Robot Unit ' + (i + 1), 'patrol bot scanning PLT field integrity');
+        robots.push({ node: robot, target: null, timer: 0, next: 1 + Math.random() * 3, speed: 0.9 + Math.random() * 1.6 });
     }
 
     // ---- STREET LAMPS ----
@@ -787,6 +942,49 @@
                     }
                 }
                 a.node.position.y = Math.sin(a.timer * 5) * 0.03;
+            }
+
+            for (const h of humans) {
+                h.timer += d;
+                if (h.timer > h.next) {
+                    h.timer = 0;
+                    h.next = 2 + Math.random() * 5;
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 6 + Math.random() * 48;
+                    h.target = new B.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+                }
+                if (h.target) {
+                    const dir = h.target.subtract(h.node.position);
+                    if (dir.length() > 0.35) {
+                        dir.normalize().scaleInPlace(h.speed * d);
+                        h.node.position.addInPlace(dir);
+                        h.node.rotation.y = Math.atan2(dir.x, dir.z);
+                    } else {
+                        h.target = null;
+                    }
+                }
+                h.node.position.y = Math.sin(h.timer * 7) * 0.015;
+            }
+
+            for (const r of robots) {
+                r.timer += d;
+                if (r.timer > r.next) {
+                    r.timer = 0;
+                    r.next = 1.2 + Math.random() * 3.5;
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 6 + Math.random() * 50;
+                    r.target = new B.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+                }
+                if (r.target) {
+                    const dir = r.target.subtract(r.node.position);
+                    if (dir.length() > 0.35) {
+                        dir.normalize().scaleInPlace(r.speed * d);
+                        r.node.position.addInPlace(dir);
+                        r.node.rotation.y = Math.atan2(dir.x, dir.z);
+                    } else {
+                        r.target = null;
+                    }
+                }
             }
         }
     });
