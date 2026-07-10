@@ -183,12 +183,7 @@
             pipeline.bloomKernel = 48;
             pipeline.bloomScale = 0.5;
             pipeline.fxaaEnabled = true;
-            if (pipeline.depthOfField) {
-                pipeline.depthOfFieldEnabled = true;
-                pipeline.depthOfField.focusDistance = 3000;
-                pipeline.depthOfField.focalLength = 50;
-                pipeline.depthOfField.fStop = 1.8;
-            }
+            pipeline.depthOfFieldEnabled = false;
             pipeline.vignetteEnabled = true;
             pipeline.vignetteWeight = 1.0;
             pipeline.sharpeningEnabled = true;
@@ -240,8 +235,8 @@
 
         // ---- FOG ----
         scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
-        scene.fogDensity = 0.003;
-        scene.fogColor = new BABYLON.Color3(0.04, 0.02, 0.10);
+        scene.fogDensity = 0.0008;
+        scene.fogColor = new BABYLON.Color3(0.03, 0.01, 0.06);
 
         // ---- OCTREE OPTIMIZATION ----
         scene.createOrUpdateSelectionOctree(64, 2);
@@ -430,7 +425,7 @@
             // ---- INTERIOR ----
             const interiorGroup = new BABYLON.TransformNode('interior');
             interiorGroup.position = new BABYLON.Vector3(x, 0, z);
-            interiorGroup.visibility = 0;
+            interiorGroup.setEnabled(false);
 
             const roomW = width * 0.8;
             const roomD = depth * 0.8;
@@ -663,7 +658,7 @@
 
             building.mesh.visibility = 0;
             building.edgeLine.visibility = 0;
-            building.interiorGroup.visibility = 1;
+            building.interiorGroup.setEnabled(true);
             currentInterior = building;
 
             savedCamPos = camera.position.clone();
@@ -700,7 +695,7 @@
             const building = currentInterior;
             building.mesh.visibility = 1;
             building.edgeLine.visibility = 1;
-            building.interiorGroup.visibility = 0;
+            building.interiorGroup.setEnabled(false);
 
             const exitPos = savedCamPos || new BABYLON.Vector3(0, 22, -38);
             const exitTarget = savedCamTarget || new BABYLON.Vector3(0, 0, 0);
@@ -833,8 +828,8 @@
             updateHUD();
 
             const col = PLT.skyColor;
-            scene.clearColor = new BABYLON.Color3(col.r, col.g, col.b);
-            scene.fogColor = new BABYLON.Color3(col.r * 0.5, col.g * 0.3, col.b * 0.6);
+            scene.clearColor = new BABYLON.Color3(col.r * 0.7, col.g * 0.7, col.b * 0.7);
+            scene.fogColor = new BABYLON.Color3(0.03, 0.01, 0.06);
         }
 
         function updateCitizens(delta) {
