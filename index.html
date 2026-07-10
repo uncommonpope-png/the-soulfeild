@@ -12,8 +12,9 @@
         #hud {
             position: fixed; top: 20px; right: 20px;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
-            padding: 16px 20px; color: #c0d8e0; font-family: 'Courier New', monospace;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 16px 20px;
+            color: #c0d8e0; font-family: 'Courier New', monospace;
             font-size: 13px; z-index: 90; min-width: 160px;
             pointer-events: none; user-select: none;
         }
@@ -29,31 +30,25 @@
 
         #terminal {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 86%; max-width: 800px; background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 12px 16px;
-            color: #b0d0e0; font-size: 14px; font-family: 'Courier New', monospace; z-index: 100;
-            display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            width: 86%; max-width: 800px;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 14px;
+            padding: 12px 16px; color: #b0d0e0; font-size: 14px;
+            font-family: 'Courier New', monospace; z-index: 100;
+            display: flex; flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
         }
         #terminal-output { max-height: 120px; overflow-y: auto; margin-bottom: 6px; line-height: 1.5; }
         #terminal-output::-webkit-scrollbar { width: 4px; }
         #terminal-output::-webkit-scrollbar-thumb { background: #4a6a8a; border-radius: 8px; }
-        .term-line .hl { color: #f0c060; } .term-line .ok { color: #60d0a0; }
-        .term-line .err { color: #e06060; } .term-line .dim { opacity: 0.5; }
+        .term-line .hl { color: #f0c060; }
+        .term-line .ok { color: #60d0a0; }
+        .term-line .err { color: #e06060; }
+        .term-line .dim { opacity: 0.5; }
         #terminal-input-line { display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 6px; }
         #terminal-prompt { color: #8ab0d0; font-weight: bold; }
         #terminal-input { flex: 1; background: transparent; border: none; color: #e0f0f8; font: inherit; outline: none; padding: 4px 0; }
         #terminal-input::placeholder { color: #3a5a6a; font-style: italic; }
-
-        #info-card {
-            position: fixed; top: 20px; left: 20px;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
-            border: 1px solid rgba(100,200,255,0.2); border-radius: 12px;
-            padding: 14px 18px; color: #a0c0e0; font-size: 13px;
-            font-family: 'Courier New', monospace; z-index: 90;
-            display: none; min-width: 180px;
-        }
-        #info-card .info-title { color: #60d0ff; font-size: 15px; font-weight: bold; margin-bottom: 6px; }
-        #info-card .info-row { opacity: 0.8; padding: 2px 0; }
     </style>
 </head>
 <body>
@@ -68,17 +63,10 @@
         <div class="hud-row plt-total"><span class="label">PLT</span><span class="value" id="hud-total">0.50</span></div>
     </div>
 
-    <div id="info-card">
-        <div class="info-title" id="info-name"></div>
-        <div class="info-row" id="info-type"></div>
-        <div class="info-row" id="info-height"></div>
-        <div class="info-row" id="info-plt"></div>
-    </div>
-
     <div id="terminal">
         <div id="terminal-output">
-            <div class="term-line">> <span class="hl">The Soulfeild</span> v2.0</div>
-            <div class="term-line">> Neon city under cosmic sky. Drag to orbit.</div>
+            <div class="term-line">> <span class="hl">The Soulfeild</span> v1.0</div>
+            <div class="term-line">> Click a building to enter. Explore the cosmos.</div>
         </div>
         <div id="terminal-input-line">
             <span id="terminal-prompt">></span>
@@ -90,435 +78,205 @@
     <script>
     const B = window.BABYLON;
     const canvas = document.getElementById('renderCanvas');
-    const engine = new B.Engine(canvas, true, { antialiasing: true, preserveDrawingBuffer: true });
+    const engine = new B.Engine(canvas, true, { antialiasing: true });
     const scene = new B.Scene(engine);
+    scene.clearColor = new B.Color3(0.02, 0.01, 0.05);
 
-    // ============================================================
-    //  SKY — procedural space skybox
-    // ============================================================
-    scene.clearColor = new B.Color4(0.005, 0.003, 0.015, 1);
-
-    const skySize = 8000;
-    const skybox = B.MeshBuilder.CreateBox('skybox', { size: skySize }, scene);
-    const skyMat = new B.StandardMaterial('skyMat', scene);
-    skyMat.backFaceCulling = false;
-    skyMat.disableLighting = true;
-
-    // Procedual nebula + stars sky texture
-    const skyCanvas = document.createElement('canvas');
-    skyCanvas.width = 2048; skyCanvas.height = 1024;
-    const sctx = skyCanvas.getContext('2d');
-
-    // Deep space gradient
-    const grad = sctx.createLinearGradient(0, 0, 0, 1024);
-    grad.addColorStop(0,    '#05030f');
-    grad.addColorStop(0.3,  '#08051a');
-    grad.addColorStop(0.5,  '#0c0420');
-    grad.addColorStop(0.7,  '#08051a');
-    grad.addColorStop(1,    '#05030f');
-    sctx.fillStyle = grad;
-    sctx.fillRect(0, 0, 2048, 1024);
-
-    // Nebula clouds
-    function drawNebula(cx, cy, w, h, color) {
-        const r = Math.max(w, h) / 2;
-        const ng = sctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        ng.addColorStop(0, color + '60');
-        ng.addColorStop(0.3, color + '30');
-        ng.addColorStop(0.6, color + '10');
-        ng.addColorStop(1, color + '00');
-        sctx.fillStyle = ng;
-        sctx.beginPath();
-        sctx.ellipse(cx, cy, w / 2, h / 2, Math.random() * Math.PI, 0, Math.PI * 2);
-        sctx.fill();
-    }
-    drawNebula(400, 300, 500, 300, '#6b2eb8');
-    drawNebula(1200, 700, 600, 400, '#2e6bb8');
-    drawNebula(1700, 200, 400, 250, '#b82e8a');
-    drawNebula(900, 500, 500, 350, '#2eb8b0');
-    // (nebula drawing done)
-
-    // Stars — thousands of them
-    for (let i = 0; i < 3000; i++) {
-        const x = Math.random() * 2048;
-        const y = Math.random() * 1024;
-        const size = Math.random() * 1.5 + 0.3;
-        const brightness = 0.4 + Math.random() * 0.6;
-        sctx.fillStyle = `rgba(255, 255, ${220 + Math.random() * 35}, ${brightness})`;
-        sctx.fillRect(x, y, size, size);
-    }
-    // Brighter stars with glow
-    for (let i = 0; i < 200; i++) {
-        const x = Math.random() * 2048;
-        const y = Math.random() * 1024;
-        const r = 1 + Math.random() * 2;
-        sctx.shadowColor = 'rgba(200, 220, 255, 0.8)';
-        sctx.shadowBlur = 8;
-        sctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        sctx.beginPath();
-        sctx.arc(x, y, r, 0, Math.PI * 2);
-        sctx.fill();
-        sctx.shadowBlur = 0;
-    }
-
-    const skyTex = new B.DynamicTexture('skyTex', skyCanvas, scene, false);
-    skyMat.emissiveTexture = skyTex;
-    skybox.material = skyMat;
-    skybox.applyFog = false;
-
-    // ============================================================
-    //  CAMERA
-    // ============================================================
-    const camera = new B.ArcRotateCamera('cam', -Math.PI / 2.5, Math.PI / 2.8, 55, B.Vector3.Zero(), scene);
+    // Camera -- ArcRotate for nice orbit
+    const camera = new B.ArcRotateCamera('cam', -Math.PI / 2.5, Math.PI / 3, 50, B.Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
-    camera.lowerRadiusLimit = 3;
-    camera.upperRadiusLimit = 300;
-    camera.lowerBetaLimit = 0.1;
-    camera.upperBetaLimit = Math.PI / 2 + 0.3;
+    camera.lowerRadiusLimit = 5;
+    camera.upperRadiusLimit = 200;
     camera.wheelDeltaPercentage = 0.01;
 
-    // ============================================================
-    //  LIGHTS
-    // ============================================================
-    const hemi = new B.HemisphericLight('hemi', new B.Vector3(0.2, 1, 0.3), scene);
-    hemi.intensity = 0.12;
-    hemi.diffuse = new B.Color3(0.3, 0.2, 0.5);
-    hemi.groundColor = new B.Color3(0.05, 0.02, 0.1);
+    // Lights
+    const hemi = new B.HemisphericLight('hemi', new B.Vector3(0, 1, 0), scene);
+    hemi.intensity = 0.3;
+    hemi.groundColor = new B.Color3(0.1, 0.05, 0.2);
+    const dir = new B.DirectionalLight('dir', new B.Vector3(0.5, -1, 0.3), scene);
+    dir.intensity = 0.8;
 
-    const moonLight = new B.DirectionalLight('moon', new B.Vector3(-0.3, -0.7, 0.4), scene);
-    moonLight.intensity = 0.35;
-    moonLight.diffuse = new B.Color3(0.5, 0.6, 0.9);
-
-    // Glow layer for neon
-    const gl = new B.GlowLayer('glow', scene, { blurKernelSize: 32 });
-    gl.intensity = 0.8;
-
-    // ============================================================
-    //  POST PROCESSING
-    // ============================================================
+    // Bloom
     const pipe = new B.DefaultRenderingPipeline('pipe', true, scene, [camera]);
     pipe.bloomEnabled = true;
-    pipe.bloomThreshold = 0.2;
-    pipe.bloomWeight = 0.7;
-    pipe.bloomKernel = 48;
-    pipe.bloomScale = 0.5;
+    pipe.bloomThreshold = 0.3;
+    pipe.bloomWeight = 0.8;
+    pipe.bloomKernel = 32;
     pipe.fxaaEnabled = true;
     pipe.depthOfFieldEnabled = false;
     pipe.vignetteEnabled = true;
-    pipe.vignetteWeight = 1.5;
-    pipe.vignetteColor = new B.Color4(0, 0, 0.02, 1);
+    pipe.vignetteWeight = 0.8;
 
-    // ============================================================
-    //  FOG
-    // ============================================================
-    scene.fogMode = B.Scene.FOGMODE_EXP2;
-    scene.fogDensity = 0.004;
-    scene.fogColor = new B.Color3(0.02, 0.01, 0.04);
-
-    // ============================================================
-    //  GROUND
-    // ============================================================
+    // ---- GROUND ----
     const ground = B.MeshBuilder.CreateGround('ground', { width: 200, height: 200 }, scene);
     const gMat = new B.StandardMaterial('gMat', scene);
-    gMat.diffuseColor = new B.Color3(0.015, 0.01, 0.03);
-    gMat.specularColor = new B.Color3(0.05, 0.05, 0.1);
-    gMat.specularPower = 256;
-    gMat.emissiveColor = new B.Color3(0.005, 0.003, 0.015);
+    gMat.diffuseColor = new B.Color3(0.02, 0.02, 0.04);
+    gMat.specularColor = new B.Color3(0.1, 0.1, 0.2);
+    gMat.emissiveColor = new B.Color3(0.01, 0.005, 0.02);
     ground.material = gMat;
 
-    // Neon grid
-    const grid = B.MeshBuilder.CreateGround('grid', { width: 180, height: 180, subdivisions: 24 }, scene);
+    // ---- NEON GRID ----
+    const grid = B.MeshBuilder.CreateGround('grid', { width: 160, height: 160, subdivisions: 20 }, scene);
     const gridMat = new B.StandardMaterial('gridMat', scene);
     gridMat.wireframe = true;
-    gridMat.emissiveColor = new B.Color3(0.08, 0.03, 0.15);
+    gridMat.emissiveColor = new B.Color3(0.1, 0.04, 0.2);
     gridMat.diffuseColor = new B.Color3(0, 0, 0);
-    gridMat.alpha = 0.25;
-    grid.position.y = 0.01;
+    gridMat.alpha = 0.3;
+    grid.position.y = 0.02;
     grid.material = gridMat;
 
-    // ============================================================
-    //  WINDOW TEXTURE (for buildings)
-    // ============================================================
-    function makeWindowTex() {
-        const c = document.createElement('canvas');
-        c.width = 256; c.height = 256;
-        const x = c.getContext('2d');
-        x.fillStyle = '#020208';
-        x.fillRect(0, 0, 256, 256);
-        const cols = 5, rows = 7, gap = 6;
-        const w = (256 - gap * (cols + 1)) / cols;
-        const h = (256 - gap * (rows + 1)) / rows;
-        for (let r = 0; r < rows; r++) {
-            for (let cc = 0; cc < cols; cc++) {
-                const px = gap + cc * (w + gap);
-                const py = gap + r * (h + gap);
-                const lit = Math.random() > 0.35;
-                if (lit) {
-                    const hue = 190 + Math.random() * 50;
-                    const sat = 60 + Math.random() * 40;
-                    const lit2 = 40 + Math.random() * 35;
-                    x.fillStyle = `hsl(${hue}, ${sat}%, ${lit2}%)`;
-                    x.shadowColor = `hsla(${hue}, 100%, 70%, 0.8)`;
-                    x.shadowBlur = 15;
-                } else {
-                    x.fillStyle = '#0a0a1a';
-                    x.shadowBlur = 0;
-                }
-                x.fillRect(px, py, w, h);
-                x.shadowBlur = 0;
-            }
-        }
-        const tex = new B.DynamicTexture('winTex', c, scene, false);
-        tex.hasAlpha = true;
-        return tex;
-    }
-    const winTex = makeWindowTex();
+    // ---- FOG (subtle) ----
+    scene.fogMode = B.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.003;
+    scene.fogColor = new B.Color3(0.02, 0.01, 0.05);
 
-    // ============================================================
-    //  BUILDINGS
-    // ============================================================
-    const buildings = [];
-    const bldgPalettes = {
-        Office:    { body: [0.08, 0.12, 0.25], glow: [0.3, 0.5, 1.0], neon: [0.2, 0.4, 1.0] },
-        Shop:      { body: [0.15, 0.06, 0.1],  glow: [1.0, 0.4, 0.3], neon: [1.0, 0.3, 0.5] },
-        Apt:       { body: [0.1, 0.08, 0.12],  glow: [0.6, 0.3, 0.8], neon: [0.8, 0.3, 1.0] },
-        Tower:     { body: [0.03, 0.05, 0.1],  glow: [0.1, 0.6, 0.8], neon: [0.1, 0.5, 0.9] },
-        House:     { body: [0.12, 0.1, 0.06],  glow: [0.9, 0.6, 0.2], neon: [1.0, 0.7, 0.3] },
-    };
+    // ---- STARS ----
+    const stars = new B.ParticleSystem('stars', 12000, scene);
+    stars.particleTexture = new B.Texture("https://assets.babylonjs.com/textures/flare.png", scene);
+    stars.createSphereEmitter(15000, 0);
+    stars.manualEmitCount = 12000;
+    stars.minLifeTime = 999999;
+    stars.maxLifeTime = 999999;
+    stars.minSize = 1;
+    stars.maxSize = 4;
+    stars.minEmitPower = 0;
+    stars.maxEmitPower = 0;
+    stars.color1 = new B.Color4(0.9, 0.9, 1, 1);
+    stars.color2 = new B.Color4(0.7, 0.8, 1, 0.8);
+    stars.colorDead = new B.Color4(0, 0, 0, 0);
+    stars.blendMode = B.ParticleSystem.BLENDMODE_ADD;
+    stars.start();
 
-    function makeBuilding(x, z, type) {
-        const pal = bldgPalettes[type] || bldgPalettes.Office;
-        const h = 4 + Math.random() * (type === 'Tower' ? 12 : 6);
-        const w = 2.5 + Math.random() * 1.5;
-        const d = 2.5 + Math.random() * 1.5;
-        if (type === 'Tower') { w += 1; d += 1; }
-
-        // Body
-        const box = B.MeshBuilder.CreateBox('b', { width: w, height: h, depth: d }, scene);
-        box.position = new B.Vector3(x, h / 2, z);
-        const m = new B.StandardMaterial('bm', scene);
-        m.diffuseColor = new B.Color3(pal.body[0], pal.body[1], pal.body[2]);
-        m.emissiveColor = new B.Color3(pal.glow[0] * 0.15, pal.glow[1] * 0.15, pal.glow[2] * 0.15);
-        m.emissiveTexture = winTex;
-        m.specularColor = new B.Color3(0.1, 0.1, 0.15);
-        m.specularPower = 128;
-        box.material = m;
-
-        // Rooftop glow box
-        const cap = B.MeshBuilder.CreateBox('cap', { width: w * 0.3, height: 0.2, depth: d * 0.3 }, scene);
-        cap.position = new B.Vector3(x, h + 0.1, z);
-        const capMat = new B.StandardMaterial('capm', scene);
-        capMat.emissiveColor = new B.Color3(pal.neon[0], pal.neon[1], pal.neon[2]);
-        capMat.diffuseColor = new B.Color3(0, 0, 0);
-        cap.material = capMat;
-
-        // Neon base strip
-        const strip = B.MeshBuilder.CreateBox('strip', { width: w + 0.15, height: 0.12, depth: d + 0.15 }, scene);
-        strip.position = new B.Vector3(x, 0.06, z);
-        const stripMat = new B.StandardMaterial('stripm', scene);
-        stripMat.emissiveColor = new B.Color3(pal.neon[0], pal.neon[1], pal.neon[2]);
-        stripMat.diffuseColor = new B.Color3(0, 0, 0);
-        strip.material = stripMat;
-
-        // Click handler
-        box.actionManager = new B.ActionManager(scene);
-        box.actionManager.registerAction(new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger, () => {
-            showInfo(type, buildings.indexOf(b), h, pal);
-        }));
-
-        const b = { mesh: box, cap, strip, x, z, h, type, pal };
-        buildings.push(b);
-        return b;
-    }
-
-    // Build city grid
-    const types = Object.keys(bldgPalettes);
-    const gs = 9, sp = 6.5, off = (gs - 1) * sp / 2;
-    for (let ix = 0; ix < gs; ix++) {
-        for (let iz = 0; iz < gs; iz++) {
-            if (ix === 4 && iz === 4) continue;
-            if (Math.random() < 0.1) continue;
-            const x = ix * sp - off + (Math.random() - 0.5) * 0.5;
-            const z = iz * sp - off + (Math.random() - 0.5) * 0.5;
-            let type = types[Math.floor(Math.random() * types.length)];
-            // More towers in center
-            const distC = Math.sqrt(x * x + z * z);
-            if (distC < 15 && Math.random() < 0.4) type = 'Tower';
-            makeBuilding(x, z, type);
-        }
-    }
-
-    // ============================================================
-    //  STREET LIGHTS
-    // ============================================================
-    for (let i = 0; i < 50; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const r = 8 + Math.random() * 30;
-        const x = Math.cos(a) * r, z = Math.sin(a) * r;
-        // Pole
-        const pole = B.MeshBuilder.CreateCylinder('pole' + i, { height: 3, diameter: 0.08 }, scene);
-        pole.position = new B.Vector3(x, 1.5, z);
-        const poleMat = new B.StandardMaterial('polem' + i, scene);
-        poleMat.diffuseColor = new B.Color3(0.1, 0.1, 0.12);
-        poleMat.emissiveColor = new B.Color3(0.02, 0.01, 0.03);
-        pole.material = poleMat;
-        // Light orb
-        const orb = B.MeshBuilder.CreateSphere('orb' + i, { diameter: 0.35, segments: 6 }, scene);
-        orb.position = new B.Vector3(x, 3, z);
-        const om = new B.StandardMaterial('om' + i, scene);
-        const hue = Math.random();
-        om.emissiveColor = new B.Color3(
-            hue < 0.5 ? 0.6 : 0.2,
-            hue < 0.5 ? 0.2 : 0.5,
-            0.8
-        );
-        om.diffuseColor = new B.Color3(0, 0, 0);
-        orb.material = om;
-        // Actual light
-        const pl = new B.PointLight('pl' + i, new B.Vector3(x, 3, z), scene);
-        pl.intensity = 0.6;
-        pl.range = 6;
-        pl.diffuse = new B.Color3(0.5, 0.2, 0.8);
-    }
-
-    // ============================================================
-    //  CITIZENS (glowing orbs with trails)
-    // ============================================================
-    const citizens = [];
-    for (let i = 0; i < 30; i++) {
-        const c = B.MeshBuilder.CreateSphere('cit' + i, { diameter: 0.35, segments: 8 }, scene);
-        const a = Math.random() * Math.PI * 2;
-        const r = 4 + Math.random() * 28;
-        c.position = new B.Vector3(Math.cos(a) * r, 0.18, Math.sin(a) * r);
-        const cm = new B.StandardMaterial('cm' + i, scene);
-        const cr = 0.3 + Math.random() * 0.7;
-        const cg = 0.3 + Math.random() * 0.7;
-        const cb = 0.3 + Math.random() * 0.7;
-        cm.emissiveColor = new B.Color3(cr, cg, cb);
-        cm.diffuseColor = new B.Color3(0, 0, 0);
-        c.material = cm;
-        citizens.push({ mesh: c, target: null, timer: 0, next: 2 + Math.random() * 4, speed: 1.5 + Math.random() * 2.5, r: cr, g: cg, b: cb });
-    }
-
-    // ============================================================
-    //  SOLAR SYSTEM (looming overhead)
-    // ============================================================
-    const sun = B.MeshBuilder.CreateSphere('sun', { diameter: 12, segments: 32 }, scene);
-    sun.position = new B.Vector3(0, 120, -250);
+    // ---- SOLAR SYSTEM ----
+    const sun = B.MeshBuilder.CreateSphere('sun', { diameter: 8, segments: 24 }, scene);
+    sun.position = new B.Vector3(0, 90, -180);
     const sunMat = new B.StandardMaterial('sunMat', scene);
-    sunMat.emissiveColor = new B.Color3(1, 0.7, 0.2);
+    sunMat.emissiveColor = new B.Color3(1, 0.8, 0.3);
     sunMat.diffuseColor = new B.Color3(0, 0, 0);
     sunMat.specularColor = new B.Color3(0, 0, 0);
     sun.material = sunMat;
 
-    const sunLight = new B.PointLight('sunL', sun.position.clone(), scene);
-    sunLight.intensity = 3;
-    sunLight.range = 800;
-    sunLight.diffuse = new B.Color3(1, 0.7, 0.3);
+    const sunGlow = new B.PointLight('sunLight', sun.position.clone(), scene);
+    sunGlow.intensity = 2;
+    sunGlow.range = 500;
+    sunGlow.diffuse = new B.Color3(1, 0.8, 0.4);
 
-    // Sun glow sprite
-    const sunGlowMgr = new B.SpriteManager('sgm', '', 1, 256, scene);
-    const sunGlow = new B.Sprite('sg', sunGlowMgr);
-    sunGlow.position = sun.position.clone();
-    sunGlow.size = 80;
-    sunGlow.color = new B.Color4(1, 0.6, 0.2, 0.15);
-
-    const planetDefs = [
-        { r: 25, d: 2.5, c: [0.9, 0.2, 0.15], spd: 0.25 },
-        { r: 38, d: 3.5, c: [0.15, 0.6, 0.9], spd: 0.18 },
-        { r: 55, d: 4.5, c: [0.9, 0.6, 0.1], spd: 0.12, moon: true },
-        { r: 75, d: 3.0, c: [0.35, 0.15, 0.7], spd: 0.08 },
-        { r: 95, d: 5.0, c: [0.1, 0.6, 0.4], spd: 0.05 },
+    const planetColors = [
+        [0.9, 0.3, 0.2], [0.2, 0.7, 0.9], [0.9, 0.6, 0.1],
+        [0.4, 0.3, 0.7], [0.3, 0.7, 0.5]
     ];
     const planets = [];
-    planetDefs.forEach((pd, i) => {
-        const pivot = new B.TransformNode('orb' + i);
+    planetColors.forEach((c, i) => {
+        const radius = 18 + i * 12;
+        const pivot = new B.TransformNode('orbit' + i);
         pivot.position = sun.position.clone();
-        const p = B.MeshBuilder.CreateSphere('p' + i, { diameter: pd.d, segments: 24 }, scene);
-        p.position = new B.Vector3(pd.r, 0, 0);
+        const p = B.MeshBuilder.CreateSphere('planet' + i, { diameter: 1.2 + i * 0.3, segments: 16 }, scene);
+        p.position = new B.Vector3(radius, 0, 0);
         p.parent = pivot;
         const pm = new B.StandardMaterial('pm' + i, scene);
-        pm.diffuseColor = new B.Color3(pd.c[0] * 0.3, pd.c[1] * 0.3, pd.c[2] * 0.3);
-        pm.emissiveColor = new B.Color3(pd.c[0] * 0.25, pd.c[1] * 0.25, pd.c[2] * 0.25);
-        pm.specularColor = new B.Color3(0.05, 0.05, 0.05);
+        pm.diffuseColor = new B.Color3(c[0], c[1], c[2]);
+        pm.emissiveColor = new B.Color3(c[0] * 0.15, c[1] * 0.15, c[2] * 0.15);
+        pm.specularColor = new B.Color3(0.1, 0.1, 0.1);
         p.material = pm;
-
-        // Planet glow
-        const pglow = new B.SpriteManager('pgm' + i, '', 1, 128, scene);
-        const ps = new B.Sprite('pg' + i, pglow);
-        ps.position = p.position.clone();
-        ps.parent = pivot;
-        ps.size = pd.d * 3;
-        ps.color = new B.Color4(pd.c[0], pd.c[1], pd.c[2], 0.08);
-
-        // Moon
-        if (pd.moon) {
-            const mp = new B.TransformNode('mp' + i);
-            mp.parent = p;
-            const moon = B.MeshBuilder.CreateSphere('moon' + i, { diameter: 0.8, segments: 12 }, scene);
-            moon.position = new B.Vector3(2.5, 0, 0);
-            moon.parent = mp;
-            const mm = new B.StandardMaterial('mm' + i, scene);
-            mm.diffuseColor = new B.Color3(0.5, 0.5, 0.55);
-            mm.emissiveColor = new B.Color3(0.1, 0.1, 0.12);
-            moon.material = mm;
-            planets.push({ moonPivot: mp, moonSpd: 0.5 });
-        }
-
-        planets.push({ pivot, spd: pd.spd });
+        planets.push({ pivot, speed: 0.3 - i * 0.04 });
     });
 
-    // ============================================================
-    //  VOLUMETRIC DUST PARTICLES
-    // ============================================================
-    const dust = new B.ParticleSystem('dust', 500, scene);
-    dust.particleTexture = new B.Texture("https://assets.babylonjs.com/textures/flare.png", scene);
-    dust.createSphereEmitter(80, 0);
-    dust.manualEmitCount = 500;
-    dust.minLifeTime = 20;
-    dust.maxLifeTime = 40;
-    dust.minSize = 0.1;
-    dust.maxSize = 0.3;
-    dust.minEmitPower = 0.1;
-    dust.maxEmitPower = 0.3;
-    dust.color1 = new B.Color4(0.3, 0.1, 0.4, 0.03);
-    dust.color2 = new B.Color4(0.1, 0.2, 0.4, 0.02);
-    dust.colorDead = new B.Color4(0, 0, 0, 0);
-    dust.gravity = new B.Vector3(0, 0.2, 0);
-    dust.blendMode = B.ParticleSystem.BLENDMODE_ADD;
-    dust.start();
+    // ---- BUILDINGS ----
+    const buildings = [];
+    const buildingColors = {
+        Office:     [0.1, 0.2, 0.5],
+        Shop:       [0.4, 0.1, 0.2],
+        Apartment:  [0.2, 0.15, 0.3],
+        Tower:      [0.05, 0.05, 0.15],
+        House:      [0.3, 0.2, 0.1],
+    };
 
-    // ============================================================
-    //  PLT SYSTEM
-    // ============================================================
+    function makeBuilding(x, z, type) {
+        const h = 3 + Math.random() * 6;
+        const w = 2 + Math.random() * 1.5;
+        const d = 2 + Math.random() * 1.5;
+        const box = B.MeshBuilder.CreateBox('bld', { width: w, height: h, depth: d }, scene);
+        box.position = new B.Vector3(x, h / 2, z);
+        const m = new B.StandardMaterial('bmat', scene);
+        const c = buildingColors[type] || [0.1, 0.1, 0.2];
+        m.diffuseColor = new B.Color3(c[0], c[1], c[2]);
+        m.emissiveColor = new B.Color3(c[0] * 0.3, c[1] * 0.3, c[2] * 0.3);
+        m.specularColor = new B.Color3(0.2, 0.2, 0.3);
+        box.material = m;
+
+        // Neon edge
+        const edges = B.MeshBuilder.CreateLines('edge', {
+            points: [
+                new B.Vector3(-w/2, 0.05, -d/2), new B.Vector3(w/2, 0.05, -d/2),
+                new B.Vector3(w/2, 0.05, d/2), new B.Vector3(-w/2, 0.05, d/2),
+                new B.Vector3(-w/2, 0.05, -d/2)
+            ]
+        }, scene);
+        edges.position = new B.Vector3(x, 0, z);
+        edges.color = new B.Color3(0.6, 0.3, 1);
+
+        // Click to show info
+        box.actionManager = new B.ActionManager(scene);
+        box.actionManager.registerAction(new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger, () => {
+            terminalLog('Entered <span class="hl">' + type + ' #' + buildings.indexOf(b) + '</span>', 'ok');
+        }));
+
+        const b = { mesh: box, edges, x, z, type, h };
+        buildings.push(b);
+        return b;
+    }
+
+    // Grid of buildings
+    const types = ['Office', 'Shop', 'Apartment', 'Tower', 'House'];
+    const gs = 8, sp = 7, off = (gs - 1) * sp / 2;
+    for (let ix = 0; ix < gs; ix++) {
+        for (let iz = 0; iz < gs; iz++) {
+            if (ix === 4 && iz === 4) continue;
+            if (Math.random() < 0.12) continue;
+            const x = ix * sp - off + (Math.random() - 0.5) * 0.5;
+            const z = iz * sp - off + (Math.random() - 0.5) * 0.5;
+            const type = types[Math.floor(Math.random() * types.length)];
+            makeBuilding(x, z, type);
+        }
+    }
+
+    // ---- STREET LAMPS ----
+    for (let i = 0; i < 40; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 8 + Math.random() * 28;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const lp = B.MeshBuilder.CreateSphere('lamp' + i, { diameter: 0.3 }, scene);
+        lp.position = new B.Vector3(x, 1.5, z);
+        const lm = new B.StandardMaterial('lm' + i, scene);
+        lm.emissiveColor = new B.Color3(0.8, 0.3, 1);
+        lm.diffuseColor = new B.Color3(0, 0, 0);
+        lp.material = lm;
+        const pl = new B.PointLight('pl' + i, new B.Vector3(x, 1.5, z), scene);
+        pl.intensity = 0.5;
+        pl.range = 5;
+        pl.diffuse = new B.Color3(0.6, 0.3, 0.9);
+    }
+
+    // ---- CITIZENS ----
+    const citizens = [];
+    const citizenNames = ['Elara','Kael','Lyra','Orin','Sera','Dorian','Faye','Gideon','Iris','Jasper','Luna','Milo'];
+    for (let i = 0; i < 25; i++) {
+        const c = B.MeshBuilder.CreateSphere('cit' + i, { diameter: 0.4, segments: 6 }, scene);
+        const a = Math.random() * Math.PI * 2;
+        const r = 5 + Math.random() * 25;
+        c.position = new B.Vector3(Math.cos(a) * r, 0.2, Math.sin(a) * r);
+        const cm = new B.StandardMaterial('cm' + i, scene);
+        cm.emissiveColor = new B.Color3(Math.random(), Math.random(), Math.random());
+        cm.diffuseColor = new B.Color3(0, 0, 0);
+        c.material = cm;
+        citizens.push({ mesh: c, target: null, timer: 0, next: 2 + Math.random() * 4, speed: 1 + Math.random() * 2 });
+    }
+
+    // ---- PLT ----
     const PLT = { profit: 0.55, love: 0.45, tax: 0.50 };
     Object.defineProperty(PLT, 'total', { get() { return Math.min(1, Math.max(0, this.profit + this.love - this.tax)); } });
 
-    function updateHUD() {
-        document.getElementById('hud-profit').textContent = PLT.profit.toFixed(2);
-        document.getElementById('hud-love').textContent = PLT.love.toFixed(2);
-        document.getElementById('hud-tax').textContent = PLT.tax.toFixed(2);
-        document.getElementById('hud-total').textContent = PLT.total.toFixed(2);
-    }
-    updateHUD();
-
-    // ============================================================
-    //  INFO CARD
-    // ============================================================
-    const infoCard = document.getElementById('info-card');
-    function showInfo(type, id, h, pal) {
-        infoCard.style.display = 'block';
-        document.getElementById('info-name').textContent = type + ' #' + id;
-        document.getElementById('info-type').textContent = 'Height: ' + h.toFixed(1) + 'm';
-        document.getElementById('info-height').textContent = 'Neon: rgb(' + Math.round(pal.neon[0]*255) + ',' + Math.round(pal.neon[1]*255) + ',' + Math.round(pal.neon[2]*255) + ')';
-        document.getElementById('info-plt').textContent = 'Status: ' + (PLT.total > 0.5 ? 'Alive' : 'Decay');
-        clearTimeout(showInfo._t);
-        showInfo._t = setTimeout(() => infoCard.style.display = 'none', 4000);
-    }
-
-    // ============================================================
-    //  TERMINAL
-    // ============================================================
+    // ---- TERMINAL ----
     const termOut = document.getElementById('terminal-output');
     const termIn = document.getElementById('terminal-input');
 
@@ -530,44 +288,48 @@
         termOut.scrollTop = termOut.scrollHeight;
     }
 
-    let paused = false;
-    let timeScale = 1;
-    const citizenNames = ['Elara','Kael','Lyra','Orin','Sera','Dorian','Faye','Gideon','Iris','Jasper','Luna','Milo'];
+    function updateHUD() {
+        document.getElementById('hud-profit').textContent = PLT.profit.toFixed(2);
+        document.getElementById('hud-love').textContent = PLT.love.toFixed(2);
+        document.getElementById('hud-tax').textContent = PLT.tax.toFixed(2);
+        document.getElementById('hud-total').textContent = PLT.total.toFixed(2);
+    }
+    updateHUD();
 
     const cmds = {
-        help() { terminalLog('Commands: <span class="hl">plt</span>, <span class="hl">time</span> [s], <span class="hl">pause</span>, <span class="hl">resume</span>, <span class="hl">spawn</span>, <span class="hl">build</span> [Office|Shop|Apt|Tower|House], <span class="hl">clear</span>'); },
-        plt() { terminalLog('P:' + PLT.profit.toFixed(2) + ' L:' + PLT.love.toFixed(2) + ' T:' + PLT.tax.toFixed(2) + ' <span class="hl">Total:' + PLT.total.toFixed(2) + '</span>'); },
+        help() { terminalLog('Commands: <span class="hl">plt</span>, <span class="hl">time</span> [speed], <span class="hl">pause</span>, <span class="hl">resume</span>, <span class="hl">spawn</span>, <span class="hl">build</span> [type], <span class="hl">exit</span>'); },
+        plt() { terminalLog('Profit: ' + PLT.profit.toFixed(2) + '  Love: ' + PLT.love.toFixed(2) + '  Tax: ' + PLT.tax.toFixed(2) + '  <span class="hl">Total: ' + PLT.total.toFixed(2) + '</span>'); },
         time(args) {
             if (args[1]) { timeScale = parseFloat(args[1]) || 1; terminalLog('Time: ' + timeScale + 'x', 'ok'); }
-            else terminalLog('Time: ' + timeScale + 'x');
+            else terminalLog('Time scale: ' + timeScale + 'x');
         },
         pause() { paused = true; terminalLog('Paused.', 'dim'); },
         resume() { paused = false; terminalLog('Resumed.', 'ok'); },
         spawn() {
             const n = citizenNames[Math.floor(Math.random() * citizenNames.length)] + (citizens.length + 1);
-            const c = B.MeshBuilder.CreateSphere('cit' + citizens.length, { diameter: 0.35, segments: 8 }, scene);
+            const c = B.MeshBuilder.CreateSphere('cit' + citizens.length, { diameter: 0.4, segments: 6 }, scene);
             const a = Math.random() * Math.PI * 2;
-            const r = 4 + Math.random() * 28;
-            c.position = new B.Vector3(Math.cos(a) * r, 0.18, Math.sin(a) * r);
+            const r = 5 + Math.random() * 25;
+            c.position = new B.Vector3(Math.cos(a) * r, 0.2, Math.sin(a) * r);
             const cm = new B.StandardMaterial('cm' + citizens.length, scene);
             cm.emissiveColor = new B.Color3(Math.random(), Math.random(), Math.random());
             cm.diffuseColor = new B.Color3(0, 0, 0);
             c.material = cm;
-            citizens.push({ mesh: c, target: null, timer: 0, next: 2 + Math.random() * 4, speed: 1.5 + Math.random() * 2.5, r: 1, g: 1, b: 1 });
+            citizens.push({ mesh: c, target: null, timer: 0, next: 2 + Math.random() * 4, speed: 1 + Math.random() * 2 });
             terminalLog('Spawned ' + n, 'ok');
         },
         build(args) {
-            const t = args[1];
-            if (t && bldgPalettes[t]) {
+            const type = args[1];
+            if (type && buildingColors[type]) {
                 const a = Math.random() * Math.PI * 2;
-                const r = 8 + Math.random() * 30;
-                makeBuilding(Math.cos(a) * r, Math.sin(a) * r, t);
-                terminalLog('Built ' + t, 'ok');
+                const r = 8 + Math.random() * 25;
+                makeBuilding(Math.cos(a) * r, Math.sin(a) * r, type);
+                terminalLog('Built ' + type, 'ok');
             } else {
-                terminalLog('Usage: build [Office|Shop|Apt|Tower|House]', 'err');
+                terminalLog('Usage: build [Office|Shop|Apartment|Tower|House]', 'err');
             }
         },
-        clear() { termOut.innerHTML = ''; terminalLog('Cleared.'); },
+        exit() { terminalLog('Not inside a building.', 'dim'); }
     };
 
     termIn.addEventListener('keydown', e => {
@@ -583,64 +345,62 @@
         }
     });
 
-    // ============================================================
-    //  RENDER LOOP
-    // ============================================================
+    // ---- STATE ----
+    let paused = false;
+    let timeScale = 1;
+
+    // ---- RENDER LOOP ----
     scene.registerBeforeRender(() => {
         const dt = engine.getDeltaTime() / 1000;
-        if (paused) return;
-        const d = dt * timeScale;
+        if (!paused) {
+            const d = dt * timeScale;
 
-        // Orbit planets
-        for (const p of planets) {
-            if (p.pivot) p.pivot.rotation.y += d * p.spd;
-            if (p.moonPivot) p.moonPivot.rotation.y += d * p.moonSpd;
-        }
-
-        // Sun rotation
-        sun.rotation.y += d * 0.05;
-
-        // Drift PLT
-        PLT.profit = Math.max(0, Math.min(1, PLT.profit + (Math.random() - 0.5) * d * 0.008));
-        PLT.love = Math.max(0, Math.min(1, PLT.love + (Math.random() - 0.5) * d * 0.008));
-        PLT.tax = Math.max(0, Math.min(1, PLT.tax + (Math.random() - 0.5) * d * 0.008));
-        updateHUD();
-
-        // PLT tints fog slightly
-        const pTint = PLT.profit * 0.01;
-        const lTint = PLT.love * 0.01;
-        const tTint = PLT.tax * 0.01;
-        scene.fogColor = new B.Color3(0.02 + pTint, 0.01 + lTint, 0.04 + tTint);
-
-        // Move citizens
-        for (const c of citizens) {
-            c.timer += d;
-            if (c.timer > c.next) {
-                c.timer = 0;
-                c.next = 2 + Math.random() * 5;
-                const a = Math.random() * Math.PI * 2;
-                const r = 3 + Math.random() * 28;
-                c.target = new B.Vector3(Math.cos(a) * r, 0.18, Math.sin(a) * r);
+            // Orbit planets
+            for (const p of planets) {
+                p.pivot.rotation.y += d * p.speed;
             }
-            if (c.target) {
-                const dir = c.target.subtract(c.mesh.position);
-                if (dir.length() > 0.3) {
-                    dir.normalize().scaleInPlace(c.speed * d);
-                    c.mesh.position.addInPlace(dir);
-                } else { c.target = null; }
+
+            // Drift PLT
+            PLT.profit = Math.max(0, Math.min(1, PLT.profit + (Math.random() - 0.5) * d * 0.01));
+            PLT.love = Math.max(0, Math.min(1, PLT.love + (Math.random() - 0.5) * d * 0.01));
+            PLT.tax = Math.max(0, Math.min(1, PLT.tax + (Math.random() - 0.5) * d * 0.01));
+            updateHUD();
+
+            // Subtle sky tint from PLT
+            scene.clearColor = new B.Color3(
+                0.02 + PLT.profit * 0.02,
+                0.01 + PLT.love * 0.02,
+                0.05 + PLT.tax * 0.02
+            );
+
+            // Move citizens
+            for (const c of citizens) {
+                c.timer += d;
+                if (c.timer > c.next) {
+                    c.timer = 0;
+                    c.next = 2 + Math.random() * 4;
+                    const a = Math.random() * Math.PI * 2;
+                    const r = 4 + Math.random() * 25;
+                    c.target = new B.Vector3(Math.cos(a) * r, 0.2, Math.sin(a) * r);
+                }
+                if (c.target) {
+                    const dir = c.target.subtract(c.mesh.position);
+                    if (dir.length() > 0.3) {
+                        dir.normalize().scaleInPlace(c.speed * d);
+                        c.mesh.position.addInPlace(dir);
+                    } else { c.target = null; }
+                }
             }
-            // Gentle bob
-            c.mesh.position.y = 0.18 + Math.sin(engine.getFps() * c.timer * 0.3) * 0.05;
         }
     });
 
     window.addEventListener('resize', () => engine.resize());
     engine.runRenderLoop(() => scene.render());
 
-    terminalLog('The Soulfeild v2.0 loaded.');
+    terminalLog('The Soulfeild loaded.');
     terminalLog('Drag to orbit. Scroll to zoom. Click buildings.');
     terminalLog('Type <span class="hl">help</span> for commands.');
-    console.log('Soulfeild v2 ready.');
+    console.log('Soulfeild ready.');
     </script>
 </body>
 </html>
