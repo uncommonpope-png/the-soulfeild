@@ -663,7 +663,7 @@
         lctx.textAlign = 'center';
         lctx.textBaseline = 'middle';
         lctx.fillText(def.name, 256, 38);
-        const labelTex = new B.Texture('data:' + labelCanvas.toDataURL(), scene);
+        const labelTex = new B.Texture(labelCanvas.toDataURL(), scene);
         const labelMat = new B.StandardMaterial(def.name + 'LabelMat', scene);
         labelMat.diffuseColor = new B.Color3(0, 0, 0);
         labelMat.emissiveColor = new B.Color3(ar * 0.8, ag * 0.8, ab * 0.8);
@@ -713,6 +713,430 @@
     }
 
     portalDefs.forEach(makePortalDistrict);
+
+    // ---- REAL SOULVERSE CITY: SITS BESIDE SOULFEILD ----
+    const soulverseCityAgents = [];
+    const soulverseKiosks = [];
+    const soulverseCenter = new B.Vector3(150, 0, 0);
+    const soulverseDistricts = {
+        work:   { label: 'Downtown', pos: new B.Vector3(120, 0, -30), color: [0.0, 1.0, 1.0], icon: 'work' },
+        home:   { label: 'Ocean Homes', pos: new B.Vector3(180, 0, -30), color: [1.0, 0.1, 0.45], icon: 'home' },
+        social: { label: 'Neon Social', pos: new B.Vector3(120, 0, 30), color: [1.0, 0.9, 0.0], icon: 'social' },
+        learn:  { label: 'Tech Learn', pos: new B.Vector3(180, 0, 30), color: [0.0, 1.0, 0.55], icon: 'learn' },
+    };
+
+    function makeCityMaterial(name, color, boost) {
+        const m = new B.StandardMaterial(name, scene);
+        m.diffuseColor = new B.Color3(color[0] * 0.28, color[1] * 0.28, color[2] * 0.28);
+        m.emissiveColor = new B.Color3(color[0] * boost, color[1] * boost, color[2] * boost);
+        m.specularColor = new B.Color3(0.35, 0.35, 0.45);
+        return m;
+    }
+
+    function makeSoulverseBuilding(x, z, h, color, name) {
+        const root = new B.TransformNode(name + 'Root');
+        root.position = new B.Vector3(x, 0, z);
+        const mat = makeCityMaterial(name + 'Mat', color, 0.18);
+        const b = B.MeshBuilder.CreateBox(name, { width: 4 + Math.random() * 3, height: h, depth: 4 + Math.random() * 3 }, scene);
+        b.position.y = h / 2;
+        b.parent = root;
+        b.material = mat;
+        const winMat = makeCityMaterial(name + 'WinMat', color, 0.75);
+        for (let floor = 0; floor < Math.floor(h / 3); floor++) {
+            if (Math.random() < 0.35) continue;
+            const strip = B.MeshBuilder.CreateBox(name + 'Win' + floor, { width: 2.2, height: 0.18, depth: 0.06 }, scene);
+            strip.position = new B.Vector3(0, 1.4 + floor * 3, -2.55);
+            strip.parent = root;
+            strip.material = winMat;
+        }
+        const cap = B.MeshBuilder.CreateSphere(name + 'Cap', { diameter: 0.55, segments: 8 }, scene);
+        cap.position.y = h + 0.35;
+        cap.parent = root;
+        cap.material = winMat;
+        makeInteractive(b, name, 'Soulverse City building — real geometry copied from the city world');
+        return root;
+    }
+
+    function makeSoulverseAgent(name, type, start, color) {
+        const root = new B.TransformNode('SoulverseAgent' + name);
+        root.position = start.clone();
+        const mat = makeCityMaterial(name + 'AgentMat', color, 0.42);
+        const auraMat = makeCityMaterial(name + 'AuraMat', color, 0.3);
+        auraMat.alpha = 0.22;
+        const aura = B.MeshBuilder.CreateSphere(name + 'Aura', { diameter: 2.3, segments: 10 }, scene);
+        aura.position.y = 1.25;
+        aura.parent = root;
+        aura.material = auraMat;
+        const body = B.MeshBuilder.CreateCylinder(name + 'Body', { height: 1.4, diameterTop: 0.42, diameterBottom: 0.5, tessellation: 8 }, scene);
+        body.position.y = 0.8;
+        body.parent = root;
+        body.material = mat;
+        const head = B.MeshBuilder.CreateSphere(name + 'Head', { diameter: 0.5, segments: 10 }, scene);
+        head.position.y = 1.65;
+        head.parent = root;
+        head.material = mat;
+        const halo = B.MeshBuilder.CreateTorus(name + 'Halo', { diameter: 1.1, thickness: 0.04, tessellation: 28 }, scene);
+        halo.position.y = 2.15;
+        halo.rotation.x = Math.PI / 2;
+        halo.parent = root;
+        halo.material = mat;
+        makeInteractive(head, name, type + ' agent from Soulverse City', () => {
+            PLT.profit = Math.min(1, PLT.profit + 0.02);
+            PLT.love = Math.min(1, PLT.love + 0.02);
+            updateHUD();
+        });
+        soulverseCityAgents.push({ node: root, name, type, target: null, timer: 0, next: 1 + Math.random() * 3, speed: 2.2 + Math.random() * 0.8, phase: Math.random() * Math.PI * 2, aura, halo });
+        return root;
+    }
+
+    function makeSoulverseKiosk(name, x, z, color, detail, action) {
+        const root = new B.TransformNode(name + 'Kiosk');
+        root.position = new B.Vector3(x, 0, z);
+        const mat = makeCityMaterial(name + 'KioskMat', color, 0.35);
+        const base = B.MeshBuilder.CreateBox(name + 'KioskBase', { width: 3.2, height: 1.4, depth: 2.0 }, scene);
+        base.position.y = 0.7;
+        base.parent = root;
+        base.material = mat;
+        const screen = B.MeshBuilder.CreatePlane(name + 'KioskScreen', { width: 2.7, height: 1.2 }, scene);
+        screen.position = new B.Vector3(0, 1.45, -1.03);
+        screen.parent = root;
+        screen.material = mat;
+        makeInteractive(base, name, detail, action);
+        makeInteractive(screen, name, detail, action);
+        soulverseKiosks.push({ root, base, screen, phase: Math.random() * Math.PI * 2 });
+    }
+
+    function makeSoulverseCity() {
+        const platformMat = new B.StandardMaterial('SoulverseCityPlatformMat', scene);
+        platformMat.diffuseColor = new B.Color3(0.03, 0.01, 0.08);
+        platformMat.emissiveColor = new B.Color3(0.035, 0.01, 0.08);
+        const platform = B.MeshBuilder.CreateGround('SoulverseCityGround', { width: 96, height: 96, subdivisions: 8 }, scene);
+        platform.position = new B.Vector3(soulverseCenter.x, 0.035, soulverseCenter.z);
+        platform.material = platformMat;
+        const grid = B.MeshBuilder.CreateGround('SoulverseCityGrid', { width: 94, height: 94, subdivisions: 16 }, scene);
+        const gridM = new B.StandardMaterial('SoulverseCityGridMat', scene);
+        gridM.wireframe = true;
+        gridM.diffuseColor = new B.Color3(0, 0, 0);
+        gridM.emissiveColor = new B.Color3(0.55, 0.08, 0.38);
+        gridM.alpha = 0.45;
+        grid.position = new B.Vector3(soulverseCenter.x, 0.055, soulverseCenter.z);
+        grid.material = gridM;
+
+        const bridgeMat = makeCityMaterial('SoulverseBridgeMat', [1.0, 0.1, 0.45], 0.2);
+        const bridge = B.MeshBuilder.CreateBox('SoulverseBridge', { width: 20, height: 0.08, depth: 5 }, scene);
+        bridge.position = new B.Vector3(96, 0.09, 0);
+        bridge.material = bridgeMat;
+        makeInteractive(bridge, 'Soulverse Bridge', 'the real road connecting Soulfeild to Soulverse City');
+
+        const roadMat2 = new B.StandardMaterial('SoulverseRoadMat', scene);
+        roadMat2.diffuseColor = new B.Color3(0.012, 0.006, 0.025);
+        roadMat2.emissiveColor = new B.Color3(0.035, 0.012, 0.055);
+        [[150, -25, 0, 84], [150, 25, 0, 84], [125, 0, Math.PI / 2, 84], [175, 0, Math.PI / 2, 84]].forEach(([x, z, r, len], i) => {
+            const rd = B.MeshBuilder.CreateBox('SoulverseRoad' + i, { width: 7, height: 0.05, depth: len }, scene);
+            rd.position = new B.Vector3(x, 0.08, z);
+            rd.rotation.y = r;
+            rd.material = roadMat2;
+        });
+
+        Object.keys(soulverseDistricts).forEach(key => {
+            const d = soulverseDistricts[key];
+            const zoneMat = makeCityMaterial('SoulverseZone' + key, d.color, 0.18);
+            zoneMat.alpha = 0.33;
+            const zone = B.MeshBuilder.CreateGround('SoulverseZone' + key, { width: 32, height: 32 }, scene);
+            zone.position = new B.Vector3(d.pos.x, 0.075, d.pos.z);
+            zone.material = zoneMat;
+            makeInteractive(zone, d.label, key + ' district from SOULVERSE-CITY');
+        });
+
+        for (let i = 0; i < 8; i++) makeSoulverseBuilding(112 + Math.random() * 22, -40 + Math.random() * 22, 15 + Math.random() * 25, soulverseDistricts.work.color, 'DowntownTower' + i);
+        for (let i = 0; i < 6; i++) makeSoulverseBuilding(170 + Math.random() * 20, -40 + Math.random() * 20, 9 + Math.random() * 12, soulverseDistricts.home.color, 'OceanHome' + i);
+        for (let i = 0; i < 5; i++) makeSoulverseBuilding(112 + Math.random() * 22, 22 + Math.random() * 20, 6 + Math.random() * 10, soulverseDistricts.social.color, 'NeonSocial' + i);
+        for (let i = 0; i < 6; i++) makeSoulverseBuilding(170 + Math.random() * 20, 22 + Math.random() * 20, 10 + Math.random() * 18, soulverseDistricts.learn.color, 'TechLearn' + i);
+
+        const fountainMat = makeCityMaterial('SoulverseFountainMat', [0.95, 0.1, 0.55], 0.35);
+        const fountain = B.MeshBuilder.CreateCylinder('SoulverseFountain', { diameter: 8, height: 0.75, tessellation: 32 }, scene);
+        fountain.position = new B.Vector3(soulverseCenter.x, 0.42, soulverseCenter.z);
+        fountain.material = fountainMat;
+        const water = B.MeshBuilder.CreateCylinder('SoulverseFountainGlow', { diameter: 6.4, height: 0.04, tessellation: 32 }, scene);
+        water.position = new B.Vector3(soulverseCenter.x, 0.86, soulverseCenter.z);
+        water.material = makeCityMaterial('SoulverseWaterMat', [0.0, 1.0, 1.0], 0.45);
+        makeInteractive(fountain, 'Soulverse City Fountain', 'center of the living city');
+
+        const cityTrunkMat = makeCityMaterial('SoulverseTreeTrunkMat', [0.35, 0.2, 0.12], 0.06);
+        const cityLeafMats = [
+            makeCityMaterial('SoulverseLeafPink', [1.0, 0.05, 0.45], 0.55),
+            makeCityMaterial('SoulverseLeafCyan', [0.0, 0.9, 1.0], 0.55),
+            makeCityMaterial('SoulverseLeafGold', [1.0, 0.9, 0.0], 0.5),
+            makeCityMaterial('SoulverseLeafGreen', [0.0, 1.0, 0.55], 0.5),
+        ];
+
+        for (let i = 0; i < 28; i++) {
+            const edge = i % 4;
+            const x = edge < 2 ? 105 + Math.random() * 90 : (edge === 2 ? 105 : 195);
+            const z = edge < 2 ? (edge === 0 ? -47 : 47) : -45 + Math.random() * 90;
+            const trunk = B.MeshBuilder.CreateCylinder('SoulverseTreeTrunk', { height: 3, diameter: 0.25, tessellation: 6 }, scene);
+            trunk.position = new B.Vector3(x, 1.5, z);
+            trunk.material = cityTrunkMat;
+            const crown = B.MeshBuilder.CreateCylinder('SoulverseTreeCrown', { diameterTop: 0, diameterBottom: 2.2, height: 3, tessellation: 6 }, scene);
+            crown.position = new B.Vector3(x, 4, z);
+            crown.material = cityLeafMats[i % cityLeafMats.length];
+        }
+
+        makeSoulverseAgent('Neo', 'code', new B.Vector3(174, 0, -28), soulverseDistricts.work.color);
+        makeSoulverseAgent('Vex', 'content', new B.Vector3(181, 0, -25), soulverseDistricts.social.color);
+        makeSoulverseAgent('Ray', 'research', new B.Vector3(178, 0, -34), soulverseDistricts.learn.color);
+        makeSoulverseAgent('Flux', 'automation', new B.Vector3(171, 0, -31), soulverseDistricts.home.color);
+
+        makeSoulverseKiosk('Deploy Station', 145, -9, [1.0, 0.1, 0.45], 'deploys a new soul agent into the city', () => {
+            const keys = Object.keys(soulverseDistricts);
+            const d = soulverseDistricts[keys[Math.floor(Math.random() * keys.length)]];
+            makeSoulverseAgent('Agent' + (soulverseCityAgents.length + 1), d.icon, d.pos.clone(), d.color);
+            PLT.profit = Math.min(1, PLT.profit + 0.04);
+            updateHUD();
+        });
+        makeSoulverseKiosk('Task Board', 156, -9, [0.0, 1.0, 1.0], 'assigns work and pays Profit back to the city', () => {
+            PLT.profit = Math.min(1, PLT.profit + 0.03);
+            PLT.tax = Math.max(0, PLT.tax - 0.01);
+            updateHUD();
+        });
+        makeSoulverseKiosk('Soul Dex', 150, 10, [1.0, 0.9, 0.0], 'catalog of living souls from Soulverse Ultimate', () => {
+            PLT.love = Math.min(1, PLT.love + 0.04);
+            updateHUD();
+        });
+    }
+
+    makeSoulverseCity();
+
+    // ---- MYSTICAL LIBRARY SKY SYSTEM / REAL ARTIFACTS ----
+    const mysticalPlanets = [];
+    const mysticalRings = [];
+    const mysticalGalaxies = [];
+    const mysticalSouls = [];
+    const mysticalPages = [];
+    const libraryBooks = [];
+    const libraryReaders = [];
+    const libraryReadingSpots = [];
+    const libraryCenter = new B.Vector3(40, 0, -45);
+
+    function makeMysticalMaterial(name, color, boost, alpha) {
+        const m = new B.StandardMaterial(name, scene);
+        m.diffuseColor = new B.Color3(color[0] * 0.28, color[1] * 0.28, color[2] * 0.28);
+        m.emissiveColor = new B.Color3(color[0] * boost, color[1] * boost, color[2] * boost);
+        m.specularColor = new B.Color3(color[0] * 0.4, color[1] * 0.4, color[2] * 0.4);
+        if (alpha !== undefined) m.alpha = alpha;
+        return m;
+    }
+
+    function makeMysticalPlanet(def, i) {
+        const pivot = new B.TransformNode('MysticalOrbit' + i);
+        pivot.position = new B.Vector3(libraryCenter.x, 13, libraryCenter.z);
+        const mat = makeMysticalMaterial('MysticalPlanetMat' + i, def.color, 0.35);
+        const planet = B.MeshBuilder.CreateSphere('MysticalPlanet' + i, { diameter: def.size, segments: 24 }, scene);
+        planet.position = new B.Vector3(def.x, def.y, def.z);
+        planet.parent = pivot;
+        planet.material = mat;
+        const aura = B.MeshBuilder.CreateSphere('MysticalPlanetAura' + i, { diameter: def.size * 1.95, segments: 16 }, scene);
+        aura.position = planet.position.clone();
+        aura.parent = pivot;
+        aura.material = makeMysticalMaterial('MysticalPlanetAuraMat' + i, def.color, 0.22, 0.22);
+        let ring = null;
+        if (def.ring) {
+            ring = B.MeshBuilder.CreateTorus('MysticalPlanetRing' + i, { diameter: def.size * 1.6, thickness: 0.08, tessellation: 56 }, scene);
+            ring.position = planet.position.clone();
+            ring.rotation.x = Math.PI / 2.2;
+            ring.parent = pivot;
+            ring.material = makeMysticalMaterial('MysticalRingMat' + i, def.ringColor || def.color, 0.55, 0.85);
+            mysticalRings.push({ mesh: ring, spin: 0.25 + i * 0.03 });
+        }
+        makeInteractive(planet, 'Mystical Planet ' + (i + 1), 'aura planet grafted from the library sky');
+        mysticalPlanets.push({ pivot, planet, aura, speed: def.speed, phase: i });
+    }
+
+    function makeMysticalGalaxy(name, x, y, z, radius, colorA, colorB) {
+        const root = new B.TransformNode(name);
+        root.position = new B.Vector3(x, y, z);
+        for (let i = 0; i < 72; i++) {
+            const arm = i % 3;
+            const t = Math.pow(Math.random(), 0.55) * radius;
+            const a = (arm / 3) * Math.PI * 2 + t * 0.45 + (Math.random() - 0.5) * 0.35;
+            const blend = t / radius;
+            const c = [
+                colorA[0] + (colorB[0] - colorA[0]) * blend,
+                colorA[1] + (colorB[1] - colorA[1]) * blend,
+                colorA[2] + (colorB[2] - colorA[2]) * blend,
+            ];
+            const dot = B.MeshBuilder.CreateSphere(name + 'Dot' + i, { diameter: 0.18 + Math.random() * 0.18, segments: 6 }, scene);
+            dot.position = new B.Vector3(Math.cos(a) * t, (Math.random() - 0.5) * 0.45, Math.sin(a) * t);
+            dot.parent = root;
+            dot.material = makeMysticalMaterial(name + 'DotMat' + i, c, 0.75, 0.9);
+        }
+        makeInteractive(root, name, 'spiral galaxy pattern studied from the Mystical Library');
+        mysticalGalaxies.push({ node: root, spin: 0.035 + Math.random() * 0.025 });
+    }
+
+    function makeMysticalBook(title, x, z, color, i) {
+        const book = B.MeshBuilder.CreateBox('MysticalBook' + i, { width: 0.34, height: 1.0, depth: 0.55 }, scene);
+        book.position = new B.Vector3(x, 1.05 + (i % 2) * 0.15, z);
+        book.rotation.y = -0.25 + (i % 5) * 0.12;
+        book.material = makeMysticalMaterial('MysticalBookMat' + i, color, 0.24);
+        makeInteractive(book, title, 'PLT text pulled out of the Mystical Library', () => {
+            PLT.love = Math.min(1, PLT.love + 0.015);
+            PLT.profit = Math.min(1, PLT.profit + 0.015);
+            updateHUD();
+        });
+        libraryBooks.push({ mesh: book, title, color });
+        return book;
+    }
+
+    function makeLibraryTable(name, x, z) {
+        const wood = makeMysticalMaterial(name + 'Wood', [0.48, 0.24, 0.08], 0.08);
+        const glow = makeMysticalMaterial(name + 'Glow', [1.0, 0.65, 0.2], 0.42, 0.8);
+        const root = new B.TransformNode(name + 'Root');
+        root.position = new B.Vector3(x, 0, z);
+        const top = B.MeshBuilder.CreateBox(name + 'Top', { width: 3.6, height: 0.18, depth: 1.5 }, scene);
+        top.position.y = 1.0;
+        top.parent = root;
+        top.material = wood;
+        for (const lx of [-1.45, 1.45]) {
+            for (const lz of [-0.55, 0.55]) {
+                const leg = B.MeshBuilder.CreateCylinder(name + 'Leg', { height: 0.95, diameter: 0.12, tessellation: 6 }, scene);
+                leg.position = new B.Vector3(lx, 0.5, lz);
+                leg.parent = root;
+                leg.material = wood;
+            }
+        }
+        const lamp = B.MeshBuilder.CreateSphere(name + 'Lamp', { diameter: 0.35, segments: 8 }, scene);
+        lamp.position = new B.Vector3(0, 1.35, 0);
+        lamp.parent = root;
+        lamp.material = glow;
+        libraryReadingSpots.push(new B.Vector3(x - 1.2, 0, z + 1.35));
+        libraryReadingSpots.push(new B.Vector3(x + 1.2, 0, z + 1.35));
+        makeInteractive(top, name, 'reading table where NPCs study PLT books');
+    }
+
+    function makeLibraryReader(name, x, z, color) {
+        const root = new B.TransformNode(name + 'Reader');
+        root.position = new B.Vector3(x, 0, z);
+        const mat = makeMysticalMaterial(name + 'ReaderMat', color, 0.32);
+        const skin = makeMysticalMaterial(name + 'ReaderSkin', [0.55, 0.36, 0.24], 0.05);
+        const body = B.MeshBuilder.CreateCylinder(name + 'Body', { height: 1.05, diameterTop: 0.36, diameterBottom: 0.46, tessellation: 8 }, scene);
+        body.position.y = 0.72;
+        body.parent = root;
+        body.material = mat;
+        const head = B.MeshBuilder.CreateSphere(name + 'Head', { diameter: 0.38, segments: 8 }, scene);
+        head.position.y = 1.45;
+        head.parent = root;
+        head.material = skin;
+        const heldBook = B.MeshBuilder.CreateBox(name + 'HeldBook', { width: 0.55, height: 0.08, depth: 0.38 }, scene);
+        heldBook.position = new B.Vector3(0, 1.02, -0.35);
+        heldBook.rotation.x = 0.28;
+        heldBook.parent = root;
+        heldBook.material = makeMysticalMaterial(name + 'HeldBookMat', [1.0, 0.72, 0.22], 0.28);
+        heldBook.isVisible = false;
+        makeInteractive(head, name, 'library reader NPC studying the books', () => {
+            PLT.love = Math.min(1, PLT.love + 0.015);
+            updateHUD();
+        });
+        libraryReaders.push({ node: root, name, head, book: heldBook, target: null, mode: 'browse', timer: 0, next: 1 + Math.random() * 2, speed: 1.1 + Math.random() * 0.5, phase: Math.random() * Math.PI * 2 });
+    }
+
+    function makeMysticalLibraryArtifacts() {
+        const floorMat = makeMysticalMaterial('MysticalLibraryFloorMat', [0.18, 0.1, 0.24], 0.12);
+        const wallMat = makeMysticalMaterial('MysticalLibraryWallMat', [0.42, 0.28, 0.16], 0.08, 0.9);
+        const goldMat = makeMysticalMaterial('MysticalLibraryGoldMat', [1.0, 0.62, 0.14], 0.46);
+        const floor = B.MeshBuilder.CreateBox('MysticalLibraryFloor', { width: 26, height: 0.16, depth: 22 }, scene);
+        floor.position = new B.Vector3(libraryCenter.x, 0.12, libraryCenter.z - 3);
+        floor.material = floorMat;
+        makeInteractive(floor, 'Mystical Library', 'a real in-town library building; readers study here');
+        const backWall = B.MeshBuilder.CreateBox('MysticalLibraryBackWall', { width: 26, height: 4.2, depth: 0.35 }, scene);
+        backWall.position = new B.Vector3(libraryCenter.x, 2.15, libraryCenter.z - 14);
+        backWall.material = wallMat;
+        const leftWall = B.MeshBuilder.CreateBox('MysticalLibraryLeftWall', { width: 0.35, height: 4.2, depth: 22 }, scene);
+        leftWall.position = new B.Vector3(libraryCenter.x - 13, 2.15, libraryCenter.z - 3);
+        leftWall.material = wallMat;
+        const rightWall = B.MeshBuilder.CreateBox('MysticalLibraryRightWall', { width: 0.35, height: 4.2, depth: 22 }, scene);
+        rightWall.position = new B.Vector3(libraryCenter.x + 13, 2.15, libraryCenter.z - 3);
+        rightWall.material = wallMat;
+        const roofRing = B.MeshBuilder.CreateTorus('MysticalLibraryRoofRing', { diameter: 24, thickness: 0.08, tessellation: 72 }, scene);
+        roofRing.position = new B.Vector3(libraryCenter.x, 4.45, libraryCenter.z - 3);
+        roofRing.rotation.x = Math.PI / 2;
+        roofRing.material = goldMat;
+        for (const sx of [-11, -4, 4, 11]) {
+            const col = B.MeshBuilder.CreateCylinder('MysticalLibraryColumn', { height: 4.2, diameter: 0.34, tessellation: 10 }, scene);
+            col.position = new B.Vector3(libraryCenter.x + sx, 2.1, libraryCenter.z + 7.2);
+            col.material = goldMat;
+        }
+
+        const pyramid = B.MeshBuilder.CreateCylinder('MysticalLibraryPyramidReal', { diameterTop: 0, diameterBottom: 9, height: 7, tessellation: 4 }, scene);
+        pyramid.position = new B.Vector3(libraryCenter.x, 3.5, libraryCenter.z - 10);
+        pyramid.rotation.y = Math.PI / 4;
+        pyramid.material = makeMysticalMaterial('MysticalLibraryPyramidMat', [0.95, 0.5, 0.12], 0.22);
+        makeInteractive(pyramid, 'Mystical Library Pyramid', 'real pyramid chamber grafted into Soulfeild');
+        const cap = B.MeshBuilder.CreateSphere('MysticalLibraryCapstone', { diameter: 0.75, segments: 12 }, scene);
+        cap.position = new B.Vector3(libraryCenter.x, 7.3, libraryCenter.z - 10);
+        cap.material = makeMysticalMaterial('MysticalLibraryCapMat', [1.0, 0.75, 0.18], 0.8);
+        makeInteractive(cap, 'Capstone', 'library beacon — click to raise Heaven resonance', () => {
+            HEAVEN.resonance = Math.min(1, HEAVEN.resonance + 0.04);
+            updateHUD();
+        });
+
+        const shelfMat = makeMysticalMaterial('MysticalShelfMat', [0.5, 0.25, 0.08], 0.08);
+        [-3.5, 3.5].forEach((sx, side) => {
+            const shelf = B.MeshBuilder.CreateBox('MysticalShelf' + side, { width: 5.2, height: 0.35, depth: 1.2 }, scene);
+            shelf.position = new B.Vector3(libraryCenter.x + sx, 0.75, libraryCenter.z - 3);
+            shelf.material = shelfMat;
+        });
+        [-9, -5, 5, 9].forEach((sx, i) => {
+            const shelf = B.MeshBuilder.CreateBox('MysticalTallShelf' + i, { width: 1.0, height: 3.1, depth: 8.2 }, scene);
+            shelf.position = new B.Vector3(libraryCenter.x + sx, 1.75, libraryCenter.z - 3.5);
+            shelf.material = shelfMat;
+            makeInteractive(shelf, 'Library Shelf ' + (i + 1), 'NPCs browse this shelf and choose books');
+            libraryReadingSpots.push(new B.Vector3(libraryCenter.x + sx + (sx < 0 ? 1.3 : -1.3), 0, libraryCenter.z - 2.5));
+        });
+        const titles = ['The Calculation', 'The First Calculation', 'Know What You Are', 'Profit. Love. Tax.', 'The Soul Economy', 'The PLT Daily', 'The Profit Bible', 'The Frequency'];
+        const colors = [[0.8,0.25,0.18],[0.2,0.7,0.3],[0.55,0.25,0.85],[0.95,0.55,0.18],[0.1,0.65,0.9],[0.95,0.2,0.55],[0.95,0.75,0.12],[0.45,0.75,1.0]];
+        titles.forEach((title, i) => makeMysticalBook(title, libraryCenter.x - 5.2 + i * 1.45, libraryCenter.z - 3.2 + (i % 2) * 0.45, colors[i], i));
+        makeLibraryTable('ReaderTableA', libraryCenter.x - 4.2, libraryCenter.z + 4.0);
+        makeLibraryTable('ReaderTableB', libraryCenter.x + 4.2, libraryCenter.z + 4.0);
+        makeLibraryReader('Scribe Reader', libraryCenter.x - 8, libraryCenter.z + 6, [0.9, 0.45, 1.0]);
+        makeLibraryReader('PLT Student', libraryCenter.x + 7, libraryCenter.z + 5, [1.0, 0.62, 0.15]);
+        makeLibraryReader('Soul Archivist', libraryCenter.x, libraryCenter.z + 7, [0.25, 0.85, 1.0]);
+
+        for (let i = 0; i < 18; i++) {
+            const soul = B.MeshBuilder.CreateSphere('MysticalSoul' + i, { diameter: 0.5 + Math.random() * 0.25, segments: 10 }, scene);
+            const a = Math.random() * Math.PI * 2;
+            soul.position = new B.Vector3(libraryCenter.x + Math.cos(a) * (5 + Math.random() * 6), 2 + Math.random() * 5, libraryCenter.z - 6 + Math.sin(a) * (5 + Math.random() * 6));
+            const color = colors[i % colors.length];
+            soul.material = makeMysticalMaterial('MysticalSoulMat' + i, color, 0.75, 0.85);
+            makeInteractive(soul, 'Library Soul ' + (i + 1), 'whispering PLT wisdom from the original library', () => {
+                PLT.love = Math.min(1, PLT.love + 0.01);
+                updateHUD();
+            });
+            mysticalSouls.push({ mesh: soul, base: soul.position.clone(), phase: Math.random() * Math.PI * 2, orbit: 0.6 + Math.random() * 0.8, speed: 0.25 + Math.random() * 0.3 });
+        }
+
+        for (let i = 0; i < 20; i++) {
+            const page = B.MeshBuilder.CreateBox('MysticalPage' + i, { width: 0.35, height: 0.02, depth: 0.5 }, scene);
+            page.position = new B.Vector3(libraryCenter.x - 8 + Math.random() * 16, 2 + Math.random() * 6, libraryCenter.z - 12 + Math.random() * 16);
+            page.material = makeMysticalMaterial('MysticalPageMat' + i, [0.95, 0.82, 0.55], 0.2, 0.9);
+            mysticalPages.push({ mesh: page, base: page.position.clone(), speed: 0.25 + Math.random() * 0.25, phase: Math.random() * Math.PI * 2 });
+        }
+
+        const planetDefs = [
+            { size: 2.1, x: -13, y: 8, z: -8, color: [0.45, 0.86, 1.0], speed: 0.12 },
+            { size: 1.6, x: 13, y: 5, z: -10, color: [1.0, 0.58, 0.32], ring: true, ringColor: [1.0, 0.8, 0.5], speed: -0.10 },
+            { size: 2.8, x: 8, y: 11, z: -16, color: [0.45, 0.65, 1.0], speed: 0.08 },
+            { size: 1.4, x: -9, y: 4, z: -16, color: [1.0, 0.38, 0.55], speed: -0.13 },
+            { size: 1.8, x: -5, y: 9, z: -21, color: [0.72, 0.45, 1.0], ring: true, speed: 0.16 },
+            { size: 2.4, x: 17, y: 8, z: -22, color: [0.32, 0.86, 0.72], speed: -0.07 },
+        ];
+        planetDefs.forEach(makeMysticalPlanet);
+        makeMysticalGalaxy('LibraryGalaxyA', libraryCenter.x - 17, 20, libraryCenter.z - 28, 8, [0.3, 0.55, 1.0], [0.75, 0.35, 1.0]);
+        makeMysticalGalaxy('LibraryGalaxyB', libraryCenter.x + 19, 18, libraryCenter.z - 30, 7, [1.0, 0.35, 0.65], [0.9, 0.55, 0.25]);
+        makeMysticalGalaxy('LibraryGalaxyC', libraryCenter.x + 2, 24, libraryCenter.z - 36, 9, [0.25, 0.9, 0.8], [0.55, 0.35, 1.0]);
+    }
+
+    makeMysticalLibraryArtifacts();
 
     // ---- CENTRAL LANDMARK: SOUL TOWER ----
     const towerBodyMat = new B.StandardMaterial('soulTowerBodyMat', scene);
@@ -1209,7 +1633,7 @@
     updateHUD();
 
     const cmds = {
-        help() { terminalLog('Commands: <span class="hl">plt</span>, <span class="hl">heaven</span>, <span class="hl">ascend</span>, <span class="hl">bless</span>, <span class="hl">seraph</span>, <span class="hl">portals</span>, <span class="hl">gossip</span>, <span class="hl">time</span> [speed], <span class="hl">pause</span>, <span class="hl">resume</span>, <span class="hl">spawn</span>, <span class="hl">build</span> [type], <span class="hl">exit</span>'); },
+        help() { terminalLog('Commands: <span class="hl">plt</span>, <span class="hl">heaven</span>, <span class="hl">ascend</span>, <span class="hl">library</span>, <span class="hl">soulcity</span>, <span class="hl">bless</span>, <span class="hl">seraph</span>, <span class="hl">portals</span>, <span class="hl">gossip</span>, <span class="hl">time</span> [speed], <span class="hl">pause</span>, <span class="hl">resume</span>, <span class="hl">spawn</span>, <span class="hl">build</span> [type], <span class="hl">exit</span>'); },
         plt() { terminalLog('Profit: ' + PLT.profit.toFixed(2) + '  Love: ' + PLT.love.toFixed(2) + '  Tax: ' + PLT.tax.toFixed(2) + '  <span class="hl">Total: ' + PLT.total.toFixed(2) + '</span>'); },
         heaven() { terminalLog('Heaven resonance: <span class="hl">' + HEAVEN.resonance.toFixed(2) + '</span>. Click Soul Tower Beacon or type <span class="hl">ascend</span>.', 'ok'); },
         ascend() {
@@ -1221,6 +1645,20 @@
             PLT.love = Math.min(1, PLT.love + 0.02);
             updateHUD();
             terminalLog('Ascension camera locked on the Heaven layer.', 'ok');
+        },
+        library() {
+            camera.setTarget(new B.Vector3(libraryCenter.x, 2.6, libraryCenter.z - 3));
+            camera.radius = 44;
+            camera.alpha = -Math.PI / 2.15;
+            camera.beta = Math.PI / 3.2;
+            terminalLog('Camera moved to the real Mystical Library building.', 'ok');
+        },
+        soulcity() {
+            camera.setTarget(new B.Vector3(soulverseCenter.x, 2, soulverseCenter.z));
+            camera.radius = 115;
+            camera.alpha = Math.PI / 2.35;
+            camera.beta = Math.PI / 3.1;
+            terminalLog('Camera moved to adjacent Soulverse City.', 'ok');
         },
         bless() {
             PLT.profit = Math.min(1, PLT.profit + 0.04);
@@ -1329,6 +1767,78 @@
             }
             for (const plm of portalLabelMeshes) {
                 plm.mesh.position.y = plm.baseY + Math.sin(heavenTime * 0.7 + plm.def.cx) * 0.15;
+            }
+            for (const kiosk of soulverseKiosks) {
+                const pulse = 1 + Math.sin(heavenTime * 1.8 + kiosk.phase) * 0.04;
+                kiosk.screen.scaling.set(pulse, pulse, pulse);
+            }
+            for (const agent of soulverseCityAgents) {
+                agent.timer += d;
+                if (!agent.target || agent.timer > agent.next) {
+                    const keys = Object.keys(soulverseDistricts);
+                    const district = soulverseDistricts[keys[Math.floor(Math.random() * keys.length)]];
+                    agent.target = district.pos.add(new B.Vector3((Math.random() - 0.5) * 14, 0, (Math.random() - 0.5) * 14));
+                    agent.timer = 0;
+                    agent.next = 4 + Math.random() * 7;
+                }
+                const dir = agent.target.subtract(agent.node.position);
+                dir.y = 0;
+                if (dir.length() > 0.5) {
+                    dir.normalize().scaleInPlace(agent.speed * d);
+                    agent.node.position.addInPlace(dir);
+                    agent.node.rotation.y = Math.atan2(dir.x, dir.z);
+                }
+                agent.node.position.y = Math.sin(heavenTime * 4 + agent.phase) * 0.04;
+                const agentPulse = 1 + Math.sin(heavenTime * 2 + agent.phase) * 0.08;
+                agent.aura.scaling.set(agentPulse, agentPulse, agentPulse);
+                agent.halo.rotation.z += d * 0.9;
+            }
+            for (const mp of mysticalPlanets) {
+                mp.pivot.rotation.y += d * mp.speed;
+                mp.planet.rotation.y += d * 0.25;
+                const auraScale = 1 + Math.sin(heavenTime * 1.2 + mp.phase) * 0.05;
+                mp.aura.scaling.set(auraScale, auraScale, auraScale);
+            }
+            for (const ring of mysticalRings) {
+                ring.mesh.rotation.z += d * ring.spin;
+            }
+            for (const g of mysticalGalaxies) {
+                g.node.rotation.y += d * g.spin;
+            }
+            for (const soul of mysticalSouls) {
+                const t = heavenTime * soul.speed + soul.phase;
+                soul.mesh.position.x = soul.base.x + Math.cos(t) * soul.orbit;
+                soul.mesh.position.y = soul.base.y + Math.sin(t * 1.6) * 0.35;
+                soul.mesh.position.z = soul.base.z + Math.sin(t) * soul.orbit;
+                const soulPulse = 1 + Math.sin(t * 2.2) * 0.08;
+                soul.mesh.scaling.set(soulPulse, soulPulse, soulPulse);
+            }
+            for (const page of mysticalPages) {
+                page.mesh.position.y = page.base.y + Math.sin(heavenTime * page.speed + page.phase) * 0.45;
+                page.mesh.rotation.y += d * 0.45;
+                page.mesh.rotation.z += d * 0.25;
+            }
+            for (const reader of libraryReaders) {
+                reader.timer += d;
+                if (!reader.target || reader.timer > reader.next) {
+                    reader.target = libraryReadingSpots[Math.floor(Math.random() * libraryReadingSpots.length)].clone();
+                    reader.mode = Math.random() < 0.65 ? 'read' : 'browse';
+                    reader.timer = 0;
+                    reader.next = reader.mode === 'read' ? 5 + Math.random() * 6 : 3 + Math.random() * 4;
+                    reader.book.isVisible = false;
+                }
+                const dir = reader.target.subtract(reader.node.position);
+                dir.y = 0;
+                if (dir.length() > 0.35) {
+                    dir.normalize().scaleInPlace(reader.speed * d);
+                    reader.node.position.addInPlace(dir);
+                    reader.node.rotation.y = Math.atan2(dir.x, dir.z);
+                    reader.book.isVisible = false;
+                } else {
+                    reader.book.isVisible = reader.mode === 'read';
+                    reader.head.rotation.x = Math.sin(heavenTime * 2.4 + reader.phase) * 0.12;
+                    reader.book.rotation.y = Math.sin(heavenTime * 1.8 + reader.phase) * 0.08;
+                }
             }
             for (const s of seraphs) {
                 const t = heavenTime * s.speed + s.phase;
@@ -1470,7 +1980,8 @@
     terminalLog('The Soulfeild loaded.');
     terminalLog('Drag to orbit. Scroll to zoom. Click buildings.');
     terminalLog('Heaven layer online. Type <span class="hl">ascend</span> or <span class="hl">bless</span>.', 'ok');
-    terminalLog('4 world portals active. Type <span class="hl">portals</span> to list them.', 'ok');
+    terminalLog('6 world portals active. Type <span class="hl">portals</span> to list them.', 'ok');
+    terminalLog('Real Soulverse City added. Type <span class="hl">soulcity</span>. Real Mystical Library added. Type <span class="hl">library</span>.', 'ok');
     terminalLog('Type <span class="hl">help</span> for commands.');
     console.log('Soulfeild ready.');
     </script>
